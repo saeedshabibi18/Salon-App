@@ -1,0 +1,2386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SalonPro — Salon Management</title>
+<style>
+:root{
+  --bg:#f5f6fa; --surface:#ffffff; --surface-2:#f0f1f6; --border:#e3e5ee;
+  --text:#1c2030; --muted:#6b7189; --primary:#7c5cff; --primary-d:#6a49f2;
+  --primary-soft:#efeaff; --success:#1fb673; --success-soft:#e2f7ee;
+  --warn:#f0a020; --warn-soft:#fdf1dc; --danger:#e5484d; --danger-soft:#fdecec;
+  --info:#3b82f6; --shadow:0 1px 3px rgba(20,20,50,.06),0 8px 24px rgba(20,20,50,.06);
+  --radius:14px; --radius-sm:10px;
+}
+[data-theme="dark"]{
+  --bg:#12141c; --surface:#1b1e2a; --surface-2:#232736; --border:#2c3143;
+  --text:#e8eaf2; --muted:#9096ad; --primary:#8b6dff; --primary-d:#7c5cff;
+  --primary-soft:#2a2547; --success:#2fce85; --success-soft:#173a2c;
+  --warn:#f0a020; --warn-soft:#3a2f16; --danger:#f0595e; --danger-soft:#3a1f21;
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg); color:var(--text); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+[dir="rtl"]{font-family:"Segoe UI","Tahoma",-apple-system,sans-serif}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px}
+a{color:var(--primary);text-decoration:none}
+.hidden{display:none !important}
+
+/* ---------- App shell ---------- */
+#app{display:flex;min-height:100vh}
+.sidebar{
+  width:236px;background:var(--surface);border-inline-end:1px solid var(--border);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:18px 18px 14px}
+.brand .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#b18bff);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;overflow:hidden}
+.brand .logo img{width:100%;height:100%;object-fit:cover}
+.brand .bn{font-weight:700;font-size:15px;line-height:1.1}
+.brand .bs{font-size:11px;color:var(--muted)}
+.nav{padding:8px;overflow-y:auto;flex:1}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--radius-sm);
+  color:var(--muted);font-weight:500;margin-bottom:2px;transition:.12s}
+.nav a:hover{background:var(--surface-2);color:var(--text)}
+.nav a.active{background:var(--primary-soft);color:var(--primary-d)}
+.nav a .ic{width:18px;text-align:center;font-size:16px}
+.nav .sep{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  padding:14px 12px 6px;font-weight:700;opacity:.7}
+.sb-foot{padding:12px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{height:60px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;padding:0 22px;position:sticky;top:0;z-index:20}
+.topbar h1{font-size:18px;font-weight:700}
+.topbar .spacer{flex:1}
+.content{padding:22px;flex:1}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);padding:9px 15px;border-radius:var(--radius-sm);
+  font-weight:600;font-size:13px;transition:.12s;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{background:var(--primary-d)}
+.btn.success{background:var(--success);border-color:var(--success);color:#fff}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--text)}
+.btn.sm{padding:6px 11px;font-size:12px}
+.btn.icon{padding:8px;width:36px;height:36px;justify-content:center}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---------- Cards / layout ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow)}
+.card.pad{padding:18px}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow)}
+.kpi .lbl{font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:7px}
+.kpi .val{font-size:26px;font-weight:800;margin-top:6px;letter-spacing:-.02em}
+.kpi .sub{font-size:12px;color:var(--muted);margin-top:3px}
+.kpi .chip{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:17px}
+
+.section-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.section-head h2{font-size:16px;font-weight:700}
+.section-head .spacer{flex:1}
+.muted{color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* ---------- Table ---------- */
+table{width:100%;border-collapse:collapse}
+th{text-align:start;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);font-weight:700;padding:11px 14px;border-bottom:1px solid var(--border)}
+td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--surface-2)}
+.t-wrap{overflow-x:auto}
+
+/* ---------- Badges ---------- */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;
+  font-size:11.5px;font-weight:700}
+.badge.b-green{background:var(--success-soft);color:var(--success)}
+.badge.b-orange{background:var(--warn-soft);color:var(--warn)}
+.badge.b-red{background:var(--danger-soft);color:var(--danger)}
+.badge.b-purple{background:var(--primary-soft);color:var(--primary-d)}
+.badge.b-gray{background:var(--surface-2);color:var(--muted)}
+.badge.b-blue{background:#e5efff;color:var(--info)}
+[data-theme="dark"] .badge.b-blue{background:#1b2c4a}
+
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-soft);color:var(--primary-d);
+  display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+
+/* ---------- Forms ---------- */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;color:var(--text)}
+.field .hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--surface);color:var(--text);outline:none;transition:.12s}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+textarea{resize:vertical;min-height:70px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.form-grid .full{grid-column:1/-1}
+.inline-in{display:flex;gap:8px;align-items:center}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(15,17,30,.5);backdrop-filter:blur(3px);
+  display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:100;overflow-y:auto}
+.modal{background:var(--surface);border-radius:var(--radius);width:100%;max-width:560px;
+  box-shadow:0 20px 60px rgba(0,0,0,.3);animation:pop .18s ease}
+.modal.lg{max-width:820px}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.modal-head{display:flex;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:16px;font-weight:700;flex:1}
+.modal-body{padding:20px;max-height:70vh;overflow-y:auto}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:16px 20px;border-top:1px solid var(--border)}
+
+/* ---------- Toast ---------- */
+#toasts{position:fixed;bottom:22px;inset-inline-end:22px;z-index:200;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--surface);border:1px solid var(--border);border-inline-start:4px solid var(--primary);
+  border-radius:var(--radius-sm);padding:12px 16px;box-shadow:var(--shadow);min-width:240px;
+  animation:slidein .2s ease;font-weight:500}
+.toast.ok{border-inline-start-color:var(--success)}
+.toast.err{border-inline-start-color:var(--danger)}
+@keyframes slidein{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ---------- Misc ---------- */
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty .big{font-size:44px;margin-bottom:10px}
+.searchbar{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:0 12px}
+.searchbar input{border:none;background:transparent;padding:9px 0;box-shadow:none}
+.searchbar input:focus{box-shadow:none}
+.tabs{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--radius-sm);flex-wrap:wrap}
+.tabs button{border:none;background:transparent;padding:7px 14px;border-radius:8px;font-weight:600;
+  color:var(--muted);font-size:13px}
+.tabs button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.pill{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);
+  font-weight:600;font-size:13px;color:var(--muted)}
+.pill.active{background:var(--primary);border-color:var(--primary);color:#fff}
+
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.bar-row .name{width:130px;font-size:13px;font-weight:600;flex-shrink:0}
+.bar-track{flex:1;height:12px;background:var(--surface-2);border-radius:20px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--primary),#b18bff);border-radius:20px}
+.bar-val{width:90px;text-align:end;font-size:13px;font-weight:700;flex-shrink:0}
+
+.cal-day{border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;min-height:90px;background:var(--surface)}
+.cal-slot{font-size:11.5px;background:var(--primary-soft);color:var(--primary-d);border-radius:6px;
+  padding:3px 6px;margin-bottom:4px;font-weight:600;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* line items */
+.li-table td{padding:8px}
+.li-table input,.li-table select{padding:7px 9px}
+
+/* invoice print */
+.invoice-print{background:#fff;color:#1c2030;padding:30px;border-radius:8px;font-size:13px}
+.invoice-print h2{color:#1c2030}
+.invoice-print table th,.invoice-print table td{border-color:#e3e5ee}
+.inv-tot{display:flex;justify-content:space-between;padding:5px 0}
+.inv-tot.grand{font-size:18px;font-weight:800;border-top:2px solid #1c2030;margin-top:6px;padding-top:10px}
+
+/* first run */
+.welcome{max-width:720px;margin:40px auto}
+.demo-card{border:1px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:.14s;background:var(--surface)}
+.demo-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow)}
+.demo-card .flag{font-size:30px}
+.demo-card h4{font-size:15px;margin:8px 0 4px}
+
+@media(max-width:860px){
+  .sidebar{position:fixed;z-index:60;transform:translateX(-100%);transition:.2s;box-shadow:0 0 40px rgba(0,0,0,.2)}
+  [dir="rtl"] .sidebar{transform:translateX(100%)}
+  .sidebar.open{transform:none}
+  .form-grid{grid-template-columns:1fr}
+  #menuBtn{display:inline-flex !important}
+}
+#menuBtn{display:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toasts"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   SalonPro — Standalone Salon Management System
+   Single-file. Offline. Data stored in this browser (localStorage).
+   Fully bilingual: English + Arabic (RTL).
+   ============================================================ */
+
+/* ---------- i18n (full UI coverage) ---------- */
+const I18N = {
+  en:{
+    dashboard:"Dashboard", appointments:"Appointments", calendar:"Calendar", clients:"Clients",
+    services:"Services", staff:"Team", products:"Inventory", invoices:"Billing & POS",
+    reports:"Reports", settings:"Settings", manage:"Manage", business:"Business",
+    todayAppts:"Today's Appointments", revenueToday:"Revenue (Today)", revenueMonth:"Revenue (This Month)",
+    totalClients:"Total Clients", newBooking:"New Booking", newClient:"New Client", newInvoice:"New Sale",
+    upcoming:"Upcoming Appointments", topServices:"Top Services", search:"Search…",
+    name:"Name", phone:"Phone", email:"Email", date:"Date", time:"Time", client:"Client",
+    service:"Service", price:"Price", duration:"Duration (min)", status:"Status", action:"Actions",
+    min:"min", sold:"sold",
+    save:"Save", cancel:"Cancel", delete:"Delete", edit:"Edit", add:"Add", close:"Close", all:"All", bill:"Bill",
+    booked:"Booked", confirmed:"Confirmed", completed:"Completed", cancelled:"Cancelled", noshow:"No-show",
+    category:"Category", stock:"In Stock", cost:"Cost", sku:"SKU", role:"Role", commission:"Commission %",
+    lowStockAlert:"Low-stock alert",
+    subtotal:"Subtotal", tax:"Tax", discount:"Discount", total:"Total", paid:"Paid", unpaid:"Unpaid",
+    checkout:"Checkout", addItem:"Add item", quantity:"Qty", amount:"Amount", notes:"Notes",
+    items:"Items", item:"Item", noItems:"No items — add a service or product above.",
+    salonProfile:"Salon Profile", region:"Region", currency:"Currency", taxRate:"Tax / VAT rate (%)",
+    address:"Address", theme:"Theme", language:"Language", light:"Light", dark:"Dark",
+    exportData:"Export / Backup", importData:"Restore Backup", resetData:"Reset all data",
+    salonName:"Salon name", logo:"Logo", taxLabelField:"Tax label (e.g. VAT, Sales Tax)",
+    regionCurrency:"Region & Currency", data:"Data", emailBackup:"Email backup to myself",
+    dataStored:"Data stored on this device",
+    dataNote:"Your data lives in this browser only. Back it up regularly, and use the same file/browser to keep your records.",
+    print:"Print", emailReceipt:"Email receipt", visits:"Visits", lastVisit:"Last visit",
+    totalSpent:"Total spent", noData:"Nothing here yet", getStarted:"Add your first record to get started.",
+    appointmentsFor:"Appointments", loadDemo:"Load demo data", welcome:"Welcome to SalonPro",
+    pickDemo:"Choose a starter setup — or start empty. You can change everything later in Settings.",
+    startEmpty:"Start empty (blank salon)", startEmptyShort:"Start empty", startEmptyNote:"Blank — set up your own salon",
+    replaceNote:"This replaces current data with a demo set.",
+    reloadNote:"You can reload demos or reset anytime from Settings.",
+    staffMember:"Team member", assignedTo:"Assigned to",
+    revenue:"Revenue", last7:"Last 7 days", topStaff:"Team performance", byService:"Revenue by service",
+    allTime:"all-time", paidInvoices:"paid invoices", taxCollected:"Tax collected", avgTicket:"Avg. ticket",
+    perInvoice:"per invoice", estCommission:"Est. commission",
+    invoiceNo:"Invoice #", createInvoice:"Create Sale / Invoice", markPaid:"Mark as paid",
+    paymentMethod:"Payment method", cash:"Cash", card:"Card", online:"Online / Wallet",
+    appointment:"Appointment", walkin:"Walk-in / POS sale", walkinCustomer:"Walk-in customer",
+    invoiceUpper:"INVOICE", billTo:"Bill to", thankYou:"Thank you for visiting", paidStamp:"PAID",
+    confirmDelete:"Are you sure you want to delete this?",
+    resetConfirm:"This erases ALL data and returns to the welcome screen. Export a backup first!",
+    saved:"Saved successfully", deleted:"Deleted", required:"Please fill in the required fields.",
+    noUpcoming:"No upcoming appointments", noSalesYet:"No sales yet", noAppointments:"No appointments",
+    noClients:"No clients", noServices:"No services", noTeam:"No team members", noProducts:"No products",
+    phClientNotes:"Preferences, allergies, favorite stylist…", phSvcCat:"Hair, Nails, Spa…",
+    phStaffRole:"Stylist, Barber, Therapist…", phProdCat:"Retail, Supplies…",
+    tLogoUpdated:"Logo updated", tBackupDl:"Backup downloaded", tBackupRestored:"Backup restored",
+    tInvalidBackup:"Invalid backup file", tBlankReady:"Blank salon ready", tDemoLoaded:"Demo loaded — explore away!",
+    tOpeningEmail:"Opening your email app…", tAddSvcFirst:"Add a service first", tAddProdFirst:"Add a product first",
+    tAddItemFirst:"Add at least one item",
+    us:"United States", ae:"United Arab Emirates", other:"Other",
+    bookOnline:"Book Online", bookNow:"Book Now", chooseService:"Choose a service",
+    chooseStaff:"Choose your professional", anyStaff:"Any available professional",
+    chooseDateTime:"Pick date & time", yourDetails:"Your details", confirmBooking:"Confirm Booking",
+    bookingConfirmed:"Booking confirmed!", bookingConfirmedMsg:"Your appointment is booked. We look forward to seeing you!",
+    backStep:"Back", nextStep:"Continue", noSlots:"No available times on this day — please pick another date.",
+    selectTime:"Select a time", withStaff:"with", poweredBy:"Powered by SalonPro", salonStaff:"Salon staff →",
+    minutes:"min", bookAnother:"Book another appointment", stepOf:"Step",
+    businessHours:"Business hours", closedDay:"Closed",
+    sun:"Sunday", mon:"Monday", tue:"Tuesday", wed:"Wednesday", thu:"Thursday", fri:"Friday", sat:"Saturday",
+    messaging:"Messaging & Reminders", sendViaLbl:"Send messages via", whatsapp:"WhatsApp", sms:"SMS", emailCh:"Email",
+    confirmTpl:"Confirmation message", reminderTpl:"Reminder message", reviewTpl:"Review request message",
+    placeholdersHint:"Placeholders: {name} {salon} {service} {date} {time} {staff}",
+    sendConfirmation:"Send confirmation", sendReminder:"Send reminder", requestReview:"Request review",
+    remindersTitle:"Reminders to send", tomorrow:"Tomorrow", reminded:"Reminded", messageClient:"Message client",
+    noPhone:"This client has no phone or email on file — add one first.",
+    onlineBadge:"Online", newOnlineOne:"new online booking", newOnlineMany:"new online bookings",
+    loyalty:"Loyalty", points:"points", loyaltyPoints:"Loyalty points", rewards:"Rewards",
+    redeemPoints:"Redeem points", loyaltyEnable:"Enable loyalty points",
+    earnRate:"Points earned per 1 spent", redeemValue:"Cash value of 1 point", worth:"worth",
+    tip:"Tip", tips:"Tips",
+    addFromLibrary:"Add from library", serviceLibrary:"Service Library", addSelected:"Add selected",
+    selectServices:"Tick the services you offer — you can rename or reprice any of them afterwards.",
+    added:"services added",
+    onlineBooking:"Online Booking", enableBooking:"Enable online booking page",
+    slotLength:"Time-slot length (min)", bookingIntro:"Welcome message on booking page",
+    copyLink:"Copy booking link", previewBooking:"Open booking page",
+    bookingLinkHint:"Share this link with customers so they can book themselves:",
+    linkCopied:"Booking link copied to clipboard", bookingDisabledMsg:"Online booking is currently turned off.",
+    cloudSecurity:"Cloud Sync & Security", staffPin:"Staff PIN (locks admin screens)",
+    setPin:"Set / Update PIN", clearPin:"Remove PIN", pinPrompt:"Enter staff PIN", unlock:"Unlock", wrongPin:"Incorrect PIN",
+    pinSet:"PIN set", pinCleared:"PIN removed", locked:"Locked",
+    cloudSync:"Cloud sync — multi-device + real online booking", cloudEnable:"Enable cloud mode",
+    supaUrl:"Supabase Project URL", supaKey:"Supabase anon (public) key", salonIdLbl:"Salon ID (any unique word)",
+    testConn:"Test connection", cloudConnected:"Connected to cloud ✓", cloudNot:"Not connected — see SETUP-CLOUD.md",
+    cloudHint:"Cloud mode needs a free Supabase project. The full ~20-minute setup is in SETUP-CLOUD.md — then paste your keys here and turn it on.",
+    cloudSaved:"Cloud settings saved", loadingBooking:"Loading booking page…",
+    incomingBookings:"Incoming online bookings", accept:"Accept", declineWord:"Decline",
+    payments:"Payments", enablePayments:"Enable payments (pay by link)",
+    paymentLink:"Your payment link (Stripe / Tap / PayTabs / etc.)",
+    depositEnable:"Require a deposit for online bookings", depositPct:"Deposit (% of service price)",
+    payNow:"Pay by link", sendPayLink:"Send payment link", scanToPay:"Scan to pay", copyPayLink:"Copy link",
+    depositDue:"Deposit due", depositNote:"A deposit is requested to secure this booking:",
+    checkoutUrlLabel:"Stripe checkout function URL (advanced — see SETUP-PAYMENTS.md)",
+    payHint:"Paste a payment link from your gateway (Stripe Payment Link, Tap, PayTabs, Telr…). Customers tap it or scan the QR to pay; then mark the invoice paid.",
+    paymentSaved:"Payment settings saved", payFor:"Payment for", cardCheckout:"Card checkout",
+    promotions:"Promotions & Referrals", promoCode:"Promo code", addCode:"Add code", apply:"Apply",
+    promoApplied:"Promo applied", promoInvalid:"Invalid or inactive code", usesWord:"uses",
+    codeLabel:"Code", pctOff:"% off", amtOff:"amount off", promoType:"Type",
+    enableReferrals:"Enable referrals (reward clients who refer friends)", referralBonus:"Referral bonus (points)",
+    referralCode:"Referral code", referredBy:"Referral code (optional)", inviteEarn:"Invite & earn",
+    reviews:"Reviews", leaveReview:"Leave a review", yourRating:"Your rating", yourReview:"Your review (optional)",
+    submitReview:"Submit review", reviewThanks:"Thank you for your feedback! 💜", avgRating:"Avg. rating",
+    recentReviews:"Recent reviews", noReviews:"No reviews yet",
+    manageBooking:"Manage my booking", findBookings:"Find my bookings", enterPhoneMsg:"Enter the phone number you booked with",
+    cancelBooking:"Cancel", noBookingsFound:"No upcoming bookings found for that number.",
+    cancelRequested:"Your cancellation request has been sent — the salon will confirm.", confirmCancelQ:"Cancel this appointment?",
+    cancelRequest:"Cancellation request", cancelDone:"Appointment cancelled",
+    homeServiceOffer:"Offer at-home service (beautician comes to the client)", homeServiceOpt:"At-home (I'll enter my address)",
+    yourAddress:"Your address", navigate:"Navigate", atHome:"At-home",
+    aiTitle:"AI Assistant", aiAsk:"Ask AI", aiSend:"Send", aiThinking:"Thinking…",
+    aiOwnerPh:"Ask about your business, or say 'draft an Eid promo for my top clients'…",
+    aiConciergePh:"Ask us anything — services, prices, what suits you…",
+    aiEnable:"Enable AI features", aiUrlLabel:"AI function URL (from SETUP-AI.md)",
+    aiConciergeToggle:"Show AI concierge on the booking page",
+    aiNotConfigured:"AI isn't set up yet — see SETUP-AI.md.", aiError:"AI is unavailable right now.", aiSaved:"AI settings saved",
+    smartTitle:"Smart suggestions", rebookDue:"Due to rebook", quietDay:"Quiet day — promote it",
+    aiConciergeName:"Ask the salon",
+  },
+  ar:{
+    dashboard:"لوحة التحكم", appointments:"المواعيد", calendar:"التقويم", clients:"العملاء",
+    services:"الخدمات", staff:"الفريق", products:"المخزون", invoices:"الفوترة ونقطة البيع",
+    reports:"التقارير", settings:"الإعدادات", manage:"الإدارة", business:"الأعمال",
+    todayAppts:"مواعيد اليوم", revenueToday:"إيرادات اليوم", revenueMonth:"إيرادات هذا الشهر",
+    totalClients:"إجمالي العملاء", newBooking:"حجز جديد", newClient:"عميل جديد", newInvoice:"بيع جديد",
+    upcoming:"المواعيد القادمة", topServices:"أفضل الخدمات", search:"بحث…",
+    name:"الاسم", phone:"الهاتف", email:"البريد الإلكتروني", date:"التاريخ", time:"الوقت", client:"العميل",
+    service:"الخدمة", price:"السعر", duration:"المدة (دقيقة)", status:"الحالة", action:"إجراءات",
+    min:"دقيقة", sold:"مُباع",
+    save:"حفظ", cancel:"إلغاء", delete:"حذف", edit:"تعديل", add:"إضافة", close:"إغلاق", all:"الكل", bill:"فوترة",
+    booked:"محجوز", confirmed:"مؤكد", completed:"مكتمل", cancelled:"ملغى", noshow:"لم يحضر",
+    category:"الفئة", stock:"المخزون", cost:"التكلفة", sku:"رمز المنتج", role:"الدور", commission:"العمولة %",
+    lowStockAlert:"تنبيه انخفاض المخزون",
+    subtotal:"المجموع الفرعي", tax:"الضريبة", discount:"الخصم", total:"الإجمالي", paid:"مدفوع", unpaid:"غير مدفوع",
+    checkout:"الدفع", addItem:"إضافة عنصر", quantity:"الكمية", amount:"المبلغ", notes:"ملاحظات",
+    items:"العناصر", item:"العنصر", noItems:"لا توجد عناصر — أضف خدمة أو منتجاً بالأعلى.",
+    salonProfile:"ملف الصالون", region:"المنطقة", currency:"العملة", taxRate:"نسبة الضريبة (%)",
+    address:"العنوان", theme:"المظهر", language:"اللغة", light:"فاتح", dark:"داكن",
+    exportData:"تصدير / نسخة احتياطية", importData:"استعادة النسخة", resetData:"إعادة تعيين البيانات",
+    salonName:"اسم الصالون", logo:"الشعار", taxLabelField:"مسمى الضريبة (مثل ض.ق.م أو ضريبة المبيعات)",
+    regionCurrency:"المنطقة والعملة", data:"البيانات", emailBackup:"إرسال نسخة احتياطية إلى بريدي",
+    dataStored:"البيانات مخزّنة على هذا الجهاز",
+    dataNote:"بياناتك محفوظة في هذا المتصفح فقط. احرص على أخذ نسخة احتياطية بانتظام، واستخدم نفس الملف/المتصفح للحفاظ على سجلاتك.",
+    print:"طباعة", emailReceipt:"إرسال الإيصال", visits:"الزيارات", lastVisit:"آخر زيارة",
+    totalSpent:"إجمالي الإنفاق", noData:"لا يوجد شيء بعد", getStarted:"أضف أول سجل للبدء.",
+    appointmentsFor:"المواعيد", loadDemo:"تحميل بيانات تجريبية", welcome:"مرحباً بك في SalonPro",
+    pickDemo:"اختر إعداداً مبدئياً — أو ابدأ فارغاً. يمكنك تغيير كل شيء لاحقاً من الإعدادات.",
+    startEmpty:"ابدأ فارغاً (صالون فارغ)", startEmptyShort:"ابدأ فارغاً", startEmptyNote:"فارغ — أنشئ صالونك الخاص",
+    replaceNote:"سيؤدي هذا إلى استبدال البيانات الحالية بمجموعة تجريبية.",
+    reloadNote:"يمكنك إعادة تحميل البيانات التجريبية أو إعادة التعيين في أي وقت من الإعدادات.",
+    staffMember:"عضو الفريق", assignedTo:"مُسند إلى",
+    revenue:"الإيرادات", last7:"آخر ٧ أيام", topStaff:"أداء الفريق", byService:"الإيرادات حسب الخدمة",
+    allTime:"الإجمالي الكلي", paidInvoices:"فواتير مدفوعة", taxCollected:"الضريبة المُحصّلة", avgTicket:"متوسط الفاتورة",
+    perInvoice:"لكل فاتورة", estCommission:"العمولة التقديرية",
+    invoiceNo:"رقم الفاتورة", createInvoice:"إنشاء فاتورة / بيع", markPaid:"وضع علامة مدفوع",
+    paymentMethod:"طريقة الدفع", cash:"نقداً", card:"بطاقة", online:"إلكتروني / محفظة",
+    appointment:"موعد", walkin:"بيع مباشر / نقطة بيع", walkinCustomer:"عميل مباشر",
+    invoiceUpper:"فاتورة", billTo:"الفاتورة إلى", thankYou:"شكراً لزيارتكم", paidStamp:"مدفوعة",
+    confirmDelete:"هل أنت متأكد من الحذف؟",
+    resetConfirm:"سيؤدي هذا إلى مسح جميع البيانات والعودة إلى شاشة الترحيب. خذ نسخة احتياطية أولاً!",
+    saved:"تم الحفظ بنجاح", deleted:"تم الحذف", required:"يرجى تعبئة الحقول المطلوبة.",
+    noUpcoming:"لا توجد مواعيد قادمة", noSalesYet:"لا مبيعات بعد", noAppointments:"لا توجد مواعيد",
+    noClients:"لا يوجد عملاء", noServices:"لا توجد خدمات", noTeam:"لا يوجد أعضاء فريق", noProducts:"لا توجد منتجات",
+    phClientNotes:"التفضيلات، الحساسية، المصفف المفضل…", phSvcCat:"شعر، أظافر، سبا…",
+    phStaffRole:"مصفف، حلاق، أخصائي…", phProdCat:"تجزئة، مستلزمات…",
+    tLogoUpdated:"تم تحديث الشعار", tBackupDl:"تم تنزيل النسخة الاحتياطية", tBackupRestored:"تمت استعادة النسخة",
+    tInvalidBackup:"ملف النسخة غير صالح", tBlankReady:"الصالون الفارغ جاهز", tDemoLoaded:"تم تحميل البيانات التجريبية — استكشف!",
+    tOpeningEmail:"جارٍ فتح تطبيق البريد…", tAddSvcFirst:"أضف خدمة أولاً", tAddProdFirst:"أضف منتجاً أولاً",
+    tAddItemFirst:"أضف عنصراً واحداً على الأقل",
+    us:"الولايات المتحدة", ae:"الإمارات العربية المتحدة", other:"أخرى",
+    bookOnline:"احجز الآن", bookNow:"احجز الآن", chooseService:"اختر الخدمة",
+    chooseStaff:"اختر الأخصائي", anyStaff:"أي أخصائي متاح",
+    chooseDateTime:"اختر التاريخ والوقت", yourDetails:"بياناتك", confirmBooking:"تأكيد الحجز",
+    bookingConfirmed:"تم تأكيد الحجز!", bookingConfirmedMsg:"تم حجز موعدك. نتطلع إلى رؤيتك!",
+    backStep:"رجوع", nextStep:"متابعة", noSlots:"لا توجد أوقات متاحة في هذا اليوم — يرجى اختيار تاريخ آخر.",
+    selectTime:"اختر وقتاً", withStaff:"مع", poweredBy:"مشغّل بواسطة SalonPro", salonStaff:"موظفو الصالون ←",
+    minutes:"دقيقة", bookAnother:"حجز موعد آخر", stepOf:"الخطوة",
+    businessHours:"ساعات العمل", closedDay:"مغلق",
+    sun:"الأحد", mon:"الإثنين", tue:"الثلاثاء", wed:"الأربعاء", thu:"الخميس", fri:"الجمعة", sat:"السبت",
+    messaging:"الرسائل والتذكيرات", sendViaLbl:"إرسال الرسائل عبر", whatsapp:"واتساب", sms:"رسالة نصية", emailCh:"بريد إلكتروني",
+    confirmTpl:"رسالة التأكيد", reminderTpl:"رسالة التذكير", reviewTpl:"رسالة طلب التقييم",
+    placeholdersHint:"المتغيرات: {name} {salon} {service} {date} {time} {staff}",
+    sendConfirmation:"إرسال التأكيد", sendReminder:"إرسال تذكير", requestReview:"طلب تقييم",
+    remindersTitle:"تذكيرات للإرسال", tomorrow:"غداً", reminded:"تم التذكير", messageClient:"مراسلة العميل",
+    noPhone:"لا يوجد رقم هاتف أو بريد لهذا العميل — أضِف واحداً أولاً.",
+    onlineBadge:"إلكتروني", newOnlineOne:"حجز إلكتروني جديد", newOnlineMany:"حجوزات إلكترونية جديدة",
+    loyalty:"الولاء", points:"نقطة", loyaltyPoints:"نقاط الولاء", rewards:"المكافآت",
+    redeemPoints:"استبدال النقاط", loyaltyEnable:"تفعيل نقاط الولاء",
+    earnRate:"النقاط المكتسبة لكل وحدة إنفاق", redeemValue:"القيمة النقدية للنقطة الواحدة", worth:"بقيمة",
+    tip:"إكرامية", tips:"الإكراميات",
+    addFromLibrary:"إضافة من المكتبة", serviceLibrary:"مكتبة الخدمات", addSelected:"إضافة المحدد",
+    selectServices:"حدّد الخدمات التي تقدمها — يمكنك تعديل الاسم أو السعر لاحقاً.",
+    added:"خدمة أُضيفت",
+    onlineBooking:"الحجز عبر الإنترنت", enableBooking:"تفعيل صفحة الحجز",
+    slotLength:"مدة الفترة الزمنية (دقيقة)", bookingIntro:"رسالة الترحيب في صفحة الحجز",
+    copyLink:"نسخ رابط الحجز", previewBooking:"فتح صفحة الحجز",
+    bookingLinkHint:"شارك هذا الرابط مع العملاء ليحجزوا بأنفسهم:",
+    linkCopied:"تم نسخ رابط الحجز", bookingDisabledMsg:"الحجز عبر الإنترنت متوقف حالياً.",
+    cloudSecurity:"المزامنة السحابية والأمان", staffPin:"رمز الموظفين (يقفل شاشات الإدارة)",
+    setPin:"تعيين / تحديث الرمز", clearPin:"إزالة الرمز", pinPrompt:"أدخل رمز الموظفين", unlock:"فتح", wrongPin:"رمز غير صحيح",
+    pinSet:"تم تعيين الرمز", pinCleared:"تمت إزالة الرمز", locked:"مقفل",
+    cloudSync:"مزامنة سحابية — أجهزة متعددة + حجز حقيقي", cloudEnable:"تفعيل الوضع السحابي",
+    supaUrl:"رابط مشروع Supabase", supaKey:"مفتاح Supabase العام", salonIdLbl:"معرّف الصالون (أي كلمة فريدة)",
+    testConn:"اختبار الاتصال", cloudConnected:"متصل بالسحابة ✓", cloudNot:"غير متصل — راجع SETUP-CLOUD.md",
+    cloudHint:"يتطلب الوضع السحابي مشروع Supabase مجاني. الإعداد الكامل (~20 دقيقة) في SETUP-CLOUD.md، ثم الصق مفاتيحك هنا وفعّله.",
+    cloudSaved:"تم حفظ إعدادات السحابة", loadingBooking:"جارٍ تحميل صفحة الحجز…",
+    incomingBookings:"حجوزات إلكترونية واردة", accept:"قبول", declineWord:"رفض",
+    payments:"المدفوعات", enablePayments:"تفعيل الدفع (عبر رابط)",
+    paymentLink:"رابط الدفع الخاص بك (Stripe / Tap / PayTabs / إلخ)",
+    depositEnable:"طلب عربون للحجوزات عبر الإنترنت", depositPct:"العربون (٪ من سعر الخدمة)",
+    payNow:"ادفع عبر الرابط", sendPayLink:"إرسال رابط الدفع", scanToPay:"امسح للدفع", copyPayLink:"نسخ الرابط",
+    depositDue:"العربون المطلوب", depositNote:"يُطلب عربون لتأكيد هذا الحجز:",
+    checkoutUrlLabel:"رابط دالة الدفع Stripe (متقدم — راجع SETUP-PAYMENTS.md)",
+    payHint:"الصق رابط الدفع من بوابتك (Stripe Payment Link أو Tap أو PayTabs أو Telr…). ينقر العميل عليه أو يمسح رمز QR للدفع، ثم ضع علامة مدفوع.",
+    paymentSaved:"تم حفظ إعدادات الدفع", payFor:"دفعة عن", cardCheckout:"الدفع بالبطاقة",
+    promotions:"العروض والإحالات", promoCode:"رمز الخصم", addCode:"إضافة رمز", apply:"تطبيق",
+    promoApplied:"تم تطبيق الرمز", promoInvalid:"رمز غير صالح أو غير مفعّل", usesWord:"استخدامات",
+    codeLabel:"الرمز", pctOff:"٪ خصم", amtOff:"مبلغ خصم", promoType:"النوع",
+    enableReferrals:"تفعيل الإحالات (مكافأة العملاء الذين يوصون بأصدقائهم)", referralBonus:"مكافأة الإحالة (نقاط)",
+    referralCode:"رمز الإحالة", referredBy:"رمز الإحالة (اختياري)", inviteEarn:"ادعُ واربح",
+    reviews:"التقييمات", leaveReview:"اترك تقييماً", yourRating:"تقييمك", yourReview:"رأيك (اختياري)",
+    submitReview:"إرسال التقييم", reviewThanks:"شكراً لملاحظاتك! 💜", avgRating:"متوسط التقييم",
+    recentReviews:"أحدث التقييمات", noReviews:"لا توجد تقييمات بعد",
+    manageBooking:"إدارة حجزي", findBookings:"ابحث عن حجوزاتي", enterPhoneMsg:"أدخل رقم الهاتف الذي حجزت به",
+    cancelBooking:"إلغاء", noBookingsFound:"لا توجد حجوزات قادمة لهذا الرقم.",
+    cancelRequested:"تم إرسال طلب الإلغاء — سيؤكده الصالون.", confirmCancelQ:"إلغاء هذا الموعد؟",
+    cancelRequest:"طلب إلغاء", cancelDone:"تم إلغاء الموعد",
+    homeServiceOffer:"تقديم الخدمة المنزلية (يذهب الأخصائي إلى العميل)", homeServiceOpt:"في المنزل (سأُدخل عنواني)",
+    yourAddress:"عنوانك", navigate:"التنقل", atHome:"في المنزل",
+    aiTitle:"المساعد الذكي", aiAsk:"اسأل", aiSend:"إرسال", aiThinking:"يفكّر…",
+    aiOwnerPh:"اسأل عن أعمالك، أو قل: اكتب عرضاً للعيد لأفضل عملائي…",
+    aiConciergePh:"اسألنا أي شيء — الخدمات، الأسعار، ما يناسبك…",
+    aiEnable:"تفعيل ميزات الذكاء الاصطناعي", aiUrlLabel:"رابط دالة الذكاء (من SETUP-AI.md)",
+    aiConciergeToggle:"إظهار المساعد الذكي في صفحة الحجز",
+    aiNotConfigured:"لم يتم إعداد الذكاء بعد — راجع SETUP-AI.md.", aiError:"المساعد الذكي غير متاح حالياً.", aiSaved:"تم حفظ إعدادات الذكاء",
+    smartTitle:"اقتراحات ذكية", rebookDue:"حان وقت إعادة الحجز", quietDay:"يوم هادئ — روّج له",
+    aiConciergeName:"اسأل الصالون",
+  }
+};
+function t(k){const l=DB.settings.lang||"en";return (I18N[l]&&I18N[l][k])||I18N.en[k]||k;}
+
+/* ---------- Storage ---------- */
+const STORE_KEY="salonpro_db_v1";
+function defaultHours(){
+  const h={}; ["sun","mon","tue","wed","thu","fri","sat"].forEach(d=>h[d]={open:"10:00",close:"20:00",closed:false});
+  return h;
+}
+function defaultTemplates(){
+  return {
+    confirm:{
+      en:"Hi {name}! Your {service} at {salon} is confirmed for {date} at {time}{staff}. See you soon! 💜",
+      ar:"مرحباً {name}! تم تأكيد {service} في {salon} يوم {date} الساعة {time}{staff}. نراك قريباً! 💜"
+    },
+    reminder:{
+      en:"Reminder: your {service} at {salon} is tomorrow, {date} at {time}{staff}. Reply to reschedule.",
+      ar:"تذكير: لديك {service} في {salon} غداً {date} الساعة {time}{staff}. راسلنا لإعادة الجدولة."
+    },
+    review:{
+      en:"Thank you for visiting {salon}, {name}! We'd love your feedback — it means the world to us. 💜",
+      ar:"شكراً لزيارتك {salon} يا {name}! يسعدنا سماع رأيك — إنه يعني لنا الكثير. 💜"
+    }
+  };
+}
+function defaultDB(){
+  return {
+    settings:{
+      salonName:"SalonPro", logo:"", region:"US", currency:"USD", currencySymbol:"$",
+      taxRate:0, taxLabel:"Sales Tax", address:"", phone:"", email:"", lang:"en",
+      theme:"light", invoiceCounter:1000, setupDone:false,
+      hours:defaultHours(), bookingSlotMinutes:30, bookingEnabled:true,
+      bookingIntro:"Book your appointment online in a few taps.",
+      notifyChannel:"whatsapp", templates:defaultTemplates(),
+      loyaltyEnabled:true, loyaltyEarnRate:1, loyaltyRedeemValue:0.05, tipEnabled:true,
+      adminPin:"", cloud:{enabled:false,url:"",key:"",salonId:""},
+      payEnabled:false, payLink:"", depositEnabled:false, depositPct:20, payCheckoutUrl:"",
+      referralsEnabled:true, referralBonus:50, homeServiceEnabled:false,
+      aiEnabled:false, aiUrl:"", aiConcierge:true
+    },
+    clients:[], staff:[], services:[], products:[], appointments:[], invoices:[], promos:[], reviews:[]
+  };
+}
+function genRefCode(name,id){ return ((name||"REF").replace(/[^A-Za-z]/g,"").slice(0,4).toUpperCase()||"REF")+String(id||"").slice(-3).toUpperCase(); }
+let DB = defaultDB();
+function ensureDefaults(){
+  const d=defaultDB().settings, s=DB.settings;
+  for(const k in d){ if(s[k]===undefined) s[k]=d[k]; }
+  if(!s.hours) s.hours=defaultHours();
+  if(!s.templates) s.templates=defaultTemplates();
+  ["confirm","reminder","review"].forEach(k=>{ if(!s.templates[k]) s.templates[k]=defaultTemplates()[k]; });
+  if(!DB.promos) DB.promos=[];
+  if(!DB.reviews) DB.reviews=[];
+  DB.clients.forEach(c=>{ if(c.points===undefined) c.points=0; if(!c.refCode) c.refCode=genRefCode(c.name,c.id); });
+  DB.appointments.forEach(a=>{ if(a.source===undefined) a.source="salon"; if(a.reminded===undefined) a.reminded=false; });
+}
+function loadDB(){ try{const r=localStorage.getItem(STORE_KEY); if(r){const p=JSON.parse(r);
+  DB=Object.assign(defaultDB(),p); DB.settings=Object.assign(defaultDB().settings,p.settings||{}); }
+  }catch(e){console.warn(e);} ensureDefaults(); }
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB));
+  if(window.SalonProCloud && DB.settings.cloud && DB.settings.cloud.enabled && SalonProCloud.onSave){ try{ SalonProCloud.onSave(DB); }catch(e){} } }
+function uid(p){ return (p||"id")+"_"+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4); }
+
+/* ---------- Helpers ---------- */
+function money(n){
+  n=Number(n)||0;
+  const cur=DB.settings.currency||"USD";
+  try{ return new Intl.NumberFormat(DB.settings.lang==="ar"?"ar-AE":"en-US",{style:"currency",currency:cur,maximumFractionDigits:2}).format(n); }
+  catch(e){ return (DB.settings.currencySymbol||"$")+n.toFixed(2); }
+}
+function todayISO(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso+(iso.length<=10?"T00:00":"")); return d.toLocaleDateString(DB.settings.lang==="ar"?"ar-AE":"en-US",{month:"short",day:"numeric",year:"numeric"}); }
+function fmtTime(hm){ if(!hm) return ""; const [h,m]=hm.split(":").map(Number); const ap=h<12?"AM":"PM"; const h12=(h%12)||12; return `${h12}:${String(m).padStart(2,"0")} ${ap}`; }
+function initials(name){ return (name||"?").split(" ").map(s=>s[0]).slice(0,2).join("").toUpperCase(); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function byId(arr,id){ return arr.find(x=>x.id===id); }
+function daysAgoISO(n){ const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+function daysFromISO(n){ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function svgLogo(text,c1,c2){
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${c1}'/><stop offset='1' stop-color='${c2}'/></linearGradient></defs><rect width='96' height='96' rx='22' fill='url(#g)'/><text x='48' y='58' font-family='Segoe UI,Arial,sans-serif' font-size='40' font-weight='700' fill='#ffffff' text-anchor='middle'>${text}</text></svg>`;
+  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+}
+function digits(p){ return (p||"").replace(/[^\d]/g,""); }
+function depositFor(sv){ if(!DB.settings.depositEnabled||!sv) return 0; return Math.round(sv.price*(DB.settings.depositPct||0))/100; }
+function awardReferral(code,newClient){
+  if(!DB.settings.referralsEnabled||!code) return;
+  const ref=DB.clients.find(x=>x.refCode&&x.refCode.toUpperCase()===String(code).toUpperCase()&&x.id!==newClient.id);
+  if(ref){ const b=DB.settings.referralBonus||0; ref.points=(ref.points||0)+b; newClient.points=(newClient.points||0)+b; }
+}
+function mapsLink(addr){ return "https://maps.google.com/?q="+encodeURIComponent(addr||""); }
+function dayKey(iso){ return ["sun","mon","tue","wed","thu","fri","sat"][new Date(iso+"T00:00").getDay()]; }
+function nowMinutes(){ const d=new Date(); return d.getHours()*60+d.getMinutes(); }
+/* generate available start times for a date, staff (""=any), given service duration */
+function slotsFor(dateISO,staffId,durationMin){
+  const h=(DB.settings.hours||{})[dayKey(dateISO)];
+  if(!h||h.closed) return [];
+  const step=DB.settings.bookingSlotMinutes||30, dur=durationMin||30;
+  const [oh,om]=h.open.split(":").map(Number), [ch,cm]=h.close.split(":").map(Number);
+  const openMin=oh*60+om, closeMin=ch*60+cm;
+  const staffCount=Math.max(1,DB.staff.length);
+  const appts=DB.appointments.filter(a=>a.date===dateISO&&a.status!=="cancelled"&&a.status!=="noshow");
+  const isToday=dateISO===todayISO(), cur=nowMinutes();
+  const res=[];
+  for(let m=openMin;m+dur<=closeMin;m+=step){
+    if(isToday&&m<=cur+15) continue; // no past / too-soon slots today
+    const s=m,e=m+dur;
+    const overlaps=appts.filter(a=>{
+      const sv=byId(DB.services,a.serviceId); const ad=sv?(sv.duration||30):30;
+      const [ah,am]=a.time.split(":").map(Number); const as=ah*60+am, ae=as+ad;
+      if(!(s<ae&&as<e)) return false;
+      return staffId? a.staffId===staffId : true;
+    });
+    if(staffId? overlaps.length===0 : overlaps.length<staffCount) res.push(String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"));
+  }
+  return res;
+}
+function fillTemplate(kind,appt){
+  const c=byId(DB.clients,appt.clientId), sv=byId(DB.services,appt.serviceId), st=byId(DB.staff,appt.staffId);
+  const lang=DB.settings.lang||"en";
+  const tpl=((DB.settings.templates||{})[kind]||{})[lang]||((DB.settings.templates||{})[kind]||{}).en||"";
+  const staffStr=st?((lang==="ar"?" مع ":" with ")+st.name):"";
+  return tpl.replace(/{name}/g,c?c.name:"").replace(/{salon}/g,DB.settings.salonName||"")
+    .replace(/{service}/g,sv?sv.name:"").replace(/{date}/g,fmtDate(appt.date))
+    .replace(/{time}/g,fmtTime(appt.time)).replace(/{staff}/g,staffStr);
+}
+function sendVia(client,text){
+  const ch=DB.settings.notifyChannel||"whatsapp";
+  if(ch==="whatsapp"){ const ph=digits(client.phone); window.open("https://wa.me/"+ph+"?text="+encodeURIComponent(text),"_blank"); }
+  else if(ch==="sms"){ window.location.href="sms:"+(client.phone||"")+"?&body="+encodeURIComponent(text); }
+  else { window.location.href="mailto:"+encodeURIComponent(client.email||"")+"?subject="+encodeURIComponent(DB.settings.salonName||"")+"&body="+encodeURIComponent(text); }
+}
+
+/* ---------- Toast ---------- */
+function toast(msg,type){
+  const el=document.createElement("div"); el.className="toast "+(type||"");
+  el.textContent=msg; document.getElementById("toasts").appendChild(el);
+  setTimeout(()=>{el.style.opacity="0";el.style.transition=".3s";setTimeout(()=>el.remove(),300);},2600);
+}
+
+/* ---------- Modal ---------- */
+function openModal(title,bodyHTML,footHTML,opts){
+  opts=opts||{};
+  const root=document.getElementById("modal-root");
+  root.innerHTML=`<div class="overlay" id="ov"><div class="modal ${opts.lg?'lg':''}">
+    <div class="modal-head"><h3>${esc(title)}</h3><button class="btn ghost icon" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">${bodyHTML}</div>
+    ${footHTML?`<div class="modal-foot">${footHTML}</div>`:""}
+  </div></div>`;
+  document.getElementById("ov").addEventListener("mousedown",e=>{ if(e.target.id==="ov") closeModal(); });
+}
+function closeModal(){ document.getElementById("modal-root").innerHTML=""; }
+function confirmDialog(msg,onYes){
+  openModal(t("confirmDelete"),`<p style="font-size:15px">${esc(msg||t("confirmDelete"))}</p>`,
+    `<button class="btn" onclick="closeModal()">${t("cancel")}</button>
+     <button class="btn danger" id="cfmYes">${t("delete")}</button>`);
+  document.getElementById("cfmYes").onclick=()=>{ closeModal(); onYes(); };
+}
+
+/* ---------- Router ---------- */
+const ROUTES=["dashboard","appointments","clients","services","staff","products","invoices","reports","settings"];
+let current="dashboard";
+function navigate(v){ current=v; location.hash=v; const sb=document.querySelector(".sidebar"); if(window.innerWidth<=860&&sb) sb.classList.remove("open"); render(); }
+window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(ROUTES.includes(h)&&h!==current){current=h;render();} });
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  document.documentElement.setAttribute("data-theme",DB.settings.theme||"light");
+  document.documentElement.setAttribute("dir",DB.settings.lang==="ar"?"rtl":"ltr");
+  document.documentElement.setAttribute("lang",DB.settings.lang||"en");
+  if(location.hash.slice(1)==="book"){ renderPublicBooking(); return; }
+  if(location.hash.slice(1)==="review"){ renderPublicReview(); return; }
+  if(location.hash.slice(1)==="manage"){ renderPublicManage(); return; }
+  if(DB.settings.setupDone && DB.settings.adminPin && !sessionUnlocked){ renderLock(); return; }
+  if(!DB.settings.setupDone){ renderWelcome(); return; }
+  const app=document.getElementById("app");
+  app.innerHTML=`${sidebar()}<div class="main">${topbar()}<div class="content" id="view"></div></div>`;
+  const view=document.getElementById("view");
+  ({dashboard:vDashboard,appointments:vAppointments,clients:vClients,services:vServices,
+    staff:vStaff,products:vProducts,invoices:vInvoices,reports:vReports,settings:vSettings}[current]||vDashboard)(view);
+}
+let sessionUnlocked=false;
+function renderLock(){
+  document.getElementById("app").innerHTML=`<div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:100vh">
+    <div class="card pad" style="max-width:340px;width:100%;text-align:center">
+      <div style="font-size:44px">🔒</div>
+      <h2 style="margin:8px 0 4px">${esc(DB.settings.salonName||"SalonPro")}</h2>
+      <p class="muted" style="margin-bottom:16px">${t("pinPrompt")}</p>
+      <input id="pinInput" type="password" inputmode="numeric" style="text-align:center;font-size:20px;letter-spacing:4px" onkeydown="if(event.key==='Enter')tryUnlock()">
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="tryUnlock()">${t("unlock")}</button>
+    </div></div>`;
+  setTimeout(()=>{const i=document.getElementById("pinInput"); if(i) i.focus();},50);
+}
+function tryUnlock(){
+  if(val("pinInput")===DB.settings.adminPin){ sessionUnlocked=true; render(); }
+  else toast(t("wrongPin"),"err");
+}
+/* bridge for the optional cloud module (see SETUP-CLOUD.md) */
+let cloudRequests=[], cloudReviews=[];
+window.SalonPro={
+  get:()=>DB,
+  applyState:(s)=>{ if(!s||!s.settings) return; DB=Object.assign(defaultDB(),s); DB.settings=Object.assign(defaultDB().settings,s.settings); ensureDefaults(); localStorage.setItem(STORE_KEY,JSON.stringify(DB)); render(); },
+  setRequests:(rows)=>{ cloudRequests=rows||[]; if(current==="dashboard"||current==="appointments") render(); },
+  setReviews:(rows)=>{ cloudReviews=rows||[]; if(current==="dashboard") render(); },
+  render:()=>render(), toast:(m,t2)=>toast(m,t2), settings:()=>DB.settings,
+  todayISO, daysFromISO, uid, byId
+};
+function reviewsList(){ return cloudOn()?cloudReviews:(DB.reviews||[]); }
+function avgRating(){ const r=reviewsList(); if(!r.length) return 0; return r.reduce((s,x)=>s+(x.rating||0),0)/r.length; }
+function stars(n){ n=Math.round(n); return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n); }
+function renderReviewsCard(){
+  const r=reviewsList(); if(!r.length) return "";
+  const recent=[...r].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,4);
+  return `<div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>⭐ ${t("reviews")}</h2><div class="spacer"></div>
+      <span class="badge b-orange">${avgRating().toFixed(1)} ${stars(avgRating())} · ${r.length}</span></div>
+    ${recent.map(x=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-weight:600">${esc(x.name||"—")} <span style="color:var(--warn)">${stars(x.rating)}</span></div>
+      ${x.text?`<div class="muted" style="font-size:13px">${esc(x.text)}</div>`:""}</div>`).join("")}
+  </div>`;
+}
+
+/* ---- Tier 1: offline smart suggestions (no API key needed) ---- */
+function smartSuggestions(){
+  const out=[], today=todayISO();
+  DB.clients.forEach(c=>{
+    const paid=DB.invoices.filter(i=>i.clientId===c.id&&i.status==="paid").map(i=>i.date).sort();
+    const last=paid[paid.length-1];
+    if(last){ const days=Math.round((new Date(today)-new Date(last))/86400000); if(days>=42) out.push({type:"rebook",clientId:c.id,days}); }
+  });
+  for(let d=1;d<=7;d++){ const day=daysFromISO(d); const n=DB.appointments.filter(a=>a.date===day&&a.status!=="cancelled").length; if(n<=1) out.push({type:"quiet",date:day,count:n}); }
+  return out;
+}
+function renderSmartCard(){
+  const s=smartSuggestions(), rebook=s.filter(x=>x.type==="rebook").slice(0,5), quiet=s.filter(x=>x.type==="quiet").slice(0,3);
+  if(!rebook.length&&!quiet.length) return "";
+  return `<div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>✨ ${t("smartTitle")}</h2></div>
+    ${rebook.map(x=>{const c=byId(DB.clients,x.clientId);return `<div class="row" style="gap:9px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div class="avatar">${initials(c?c.name:"?")}</div>
+      <div style="flex:1">${esc(c?c.name:"")}<div class="muted" style="font-size:12px">${t("rebookDue")} • ${x.days}d</div></div>
+      <button class="btn sm" onclick="apptModalFor('${x.clientId}')">📅 ${t("newBooking")}</button>
+      ${(c&&(digits(c.phone)||c.email))?`<button class="btn sm ghost" onclick="messageModalForClient('${x.clientId}')">💬</button>`:""}</div>`;}).join("")}
+    ${quiet.map(x=>`<div class="row" style="gap:9px;padding:7px 0"><div style="font-size:18px">📉</div>
+      <div style="flex:1">${fmtDate(x.date)}<div class="muted" style="font-size:12px">${t("quietDay")} • ${x.count}</div></div></div>`).join("")}
+  </div>`;
+}
+function messageModalForClient(cid){ const c=byId(DB.clients,cid); if(!c) return; const text=fillTemplate("review",{clientId:cid,serviceId:"",staffId:"",date:todayISO(),time:"10:00"}); sendVia(c,text); toast(t("tOpeningEmail"),"ok"); }
+
+/* ---- Tier 2: AI via your backend function (Claude) ---- */
+function aiOn(){ return !!(DB.settings.aiEnabled && DB.settings.aiUrl); }
+function businessSummary(){
+  const today=todayISO(), mon=today.slice(0,7), paid=DB.invoices.filter(i=>i.status==="paid");
+  const revMonth=paid.filter(i=>i.date.slice(0,7)===mon).reduce((s,i)=>s+i.total,0);
+  const svc={}; paid.forEach(i=>i.items.forEach(it=>{if(it.type==="service")svc[it.name]=(svc[it.name]||0)+it.qty;}));
+  const top=Object.entries(svc).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,c])=>`${n} (${c})`);
+  return {salon:DB.settings.salonName,currency:DB.settings.currency,revenueThisMonth:Math.round(revMonth),
+    clients:DB.clients.length,paidInvoices:paid.length,
+    upcomingAppointments:DB.appointments.filter(a=>a.date>=today&&a.status!=="cancelled"&&a.status!=="completed").length,
+    topServices:top,lowStock:DB.products.filter(p=>p.stock<=(p.lowStock||5)).map(p=>p.name)};
+}
+function aiCall(mode,message,context,history){
+  return fetch(DB.settings.aiUrl,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({mode,message,context,history:history||[]})})
+    .then(r=>r.json()).then(d=>(d&&d.reply)?d.reply:Promise.reject(d));
+}
+function aiBubble(logId,who,text){
+  const log=document.getElementById(logId); if(!log) return null;
+  const d=document.createElement("div"); d.style.cssText="margin-bottom:10px;display:flex;"+(who==="you"?"justify-content:flex-end":"");
+  d.innerHTML=`<div style="max-width:82%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;${who==="you"?"background:var(--primary);color:#fff":"background:var(--surface-2)"}"></div>`;
+  d.firstChild.textContent=text; log.appendChild(d); log.scrollTop=log.scrollHeight; return d.firstChild;
+}
+let aiHist=[], ccHist=[];
+function aiModal(){
+  aiHist=[];
+  openModal("🤖 "+t("aiTitle"),
+    `<div id="aiLog" style="max-height:44vh;overflow-y:auto;margin-bottom:12px;min-height:60px"></div>
+     <div class="inline-in"><input id="aiIn" placeholder="${esc(t("aiOwnerPh"))}" onkeydown="if(event.key==='Enter')aiSubmit()"><button class="btn primary" onclick="aiSubmit()">${t("aiSend")}</button></div>
+     ${aiOn()?"":`<p class="muted" style="font-size:12px;margin-top:10px">${t("aiNotConfigured")}</p>`}`,
+    `<button class="btn" onclick="closeModal()">${t("close")}</button>`,{lg:true});
+}
+function aiSubmit(){
+  const inp=document.getElementById("aiIn"), msg=inp?inp.value.trim():""; if(!msg) return;
+  if(!aiOn()) return toast(t("aiNotConfigured"),"err");
+  inp.value=""; aiBubble("aiLog","you",msg); const b=aiBubble("aiLog","ai",t("aiThinking"));
+  aiCall("owner",msg,businessSummary(),aiHist).then(r=>{ b.textContent=r; aiHist.push({role:"user",content:msg},{role:"assistant",content:r}); })
+    .catch(()=>{ b.textContent=t("aiError"); });
+}
+function conciergeModal(){
+  ccHist=[];
+  openModal("💬 "+t("aiConciergeName"),
+    `<div id="ccLog" style="max-height:44vh;overflow-y:auto;margin-bottom:12px;min-height:60px"></div>
+     <div class="inline-in"><input id="ccIn" placeholder="${esc(t("aiConciergePh"))}" onkeydown="if(event.key==='Enter')ccSubmit()"><button class="btn primary" onclick="ccSubmit()">${t("aiSend")}</button></div>`,
+    `<button class="btn" onclick="closeModal()">${t("close")}</button>`,{lg:true});
+}
+function ccSubmit(){
+  const inp=document.getElementById("ccIn"), msg=inp?inp.value.trim():""; if(!msg) return; inp.value="";
+  aiBubble("ccLog","you",msg); const b=aiBubble("ccLog","ai",t("aiThinking"));
+  const ctx={salon:DB.settings.salonName,currency:DB.settings.currency,hours:DB.settings.hours,
+    services:(DB.services||[]).map(s=>({name:s.name,category:s.category,duration:s.duration,price:s.price}))};
+  aiCall("concierge",msg,ctx,ccHist).then(r=>{ b.textContent=r; ccHist.push({role:"user",content:msg},{role:"assistant",content:r}); })
+    .catch(()=>{ b.textContent=t("aiError"); });
+}
+function cloudOn(){ return !!(window.SalonProCloud && DB.settings.cloud && DB.settings.cloud.enabled); }
+
+function sidebar(){
+  const s=DB.settings;
+  const link=(v,ic,label)=>`<a class="${current===v?'active':''}" href="#${v}" onclick="event.preventDefault();navigate('${v}')"><span class="ic">${ic}</span>${label}</a>`;
+  return `<div class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">${s.logo?`<img src="${s.logo}">`:esc((s.salonName||"S")[0])}</div>
+      <div><div class="bn">${esc(s.salonName||"SalonPro")}</div><div class="bs">${esc(s.region==="AE"?t("ae"):s.region==="US"?t("us"):t("other"))}</div></div>
+    </div>
+    <div class="nav">
+      ${link("dashboard","📊",t("dashboard"))}
+      ${link("appointments","📅",t("appointments"))}
+      ${link("invoices","💳",t("invoices"))}
+      <div class="sep">${t("manage")}</div>
+      ${link("clients","👤",t("clients"))}
+      ${link("services","✂️",t("services"))}
+      ${link("staff","👥",t("staff"))}
+      ${link("products","📦",t("products"))}
+      <div class="sep">${t("business")}</div>
+      ${link("reports","📈",t("reports"))}
+      ${link("settings","⚙️",t("settings"))}
+    </div>
+    <div class="sb-foot">SalonPro • v1.5<br>${t("dataStored")}</div>
+  </div>`;
+}
+function topbar(){
+  const titles={dashboard:t("dashboard"),appointments:t("appointments"),clients:t("clients"),services:t("services"),
+    staff:t("staff"),products:t("products"),invoices:t("invoices"),reports:t("reports"),settings:t("settings")};
+  let quick="";
+  if(current==="dashboard"||current==="appointments") quick=`<button class="btn primary" onclick="apptModal()">＋ ${t("newBooking")}</button>`;
+  if(current==="clients") quick=`<button class="btn primary" onclick="clientModal()">＋ ${t("newClient")}</button>`;
+  if(current==="invoices") quick=`<button class="btn primary" onclick="invoiceModal()">＋ ${t("newInvoice")}</button>`;
+  return `<div class="topbar">
+    <button class="btn ghost icon" id="menuBtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+    <h1>${titles[current]||""}</h1><div class="spacer"></div>
+    <button class="btn ghost icon" title="${t("aiTitle")}" onclick="aiModal()">🤖</button>
+    <button class="btn ghost icon" title="Theme" onclick="toggleTheme()">${DB.settings.theme==="dark"?"☀️":"🌙"}</button>
+    <button class="btn ghost icon" title="Language" onclick="toggleLang()">${DB.settings.lang==="ar"?"EN":"ع"}</button>
+    ${quick}
+  </div>`;
+}
+function toggleTheme(){ DB.settings.theme=DB.settings.theme==="dark"?"light":"dark"; save(); render(); }
+function toggleLang(){ DB.settings.lang=DB.settings.lang==="ar"?"en":"ar"; save(); render(); }
+
+/* ---------- Welcome / first run ---------- */
+function renderWelcome(){
+  document.getElementById("app").innerHTML=`<div style="flex:1"><div class="welcome">
+    <div style="text-align:center;margin-bottom:26px">
+      <div style="font-size:52px">💇</div>
+      <h1 style="font-size:26px;margin-top:8px">${t("welcome")}</h1>
+      <p class="muted" style="margin-top:8px;max-width:520px;margin-inline:auto">${t("pickDemo")}</p>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">
+      <div class="demo-card" onclick="applyDemo('us')"><div class="flag">🇺🇸</div><h4>Luxe Hair Studio</h4>
+        <p class="muted">${DB.settings.lang==="ar"?"صالون أمريكي • دولار • ضريبة مبيعات ٨٫٢٥٪ • بيانات كاملة":"US salon • USD • 8.25% sales tax • full demo data"}</p></div>
+      <div class="demo-card" onclick="applyDemo('ae')"><div class="flag">🇦🇪</div><h4>Royal Beauty Lounge</h4>
+        <p class="muted">${DB.settings.lang==="ar"?"صالون في دبي • درهم • ض.ق.م ٥٪ • يدعم العربية":"Dubai salon • AED • 5% VAT • Arabic-ready"}</p></div>
+      <div class="demo-card" onclick="applyDemo('spa')"><div class="flag">💆</div><h4>Serene Spa & Nails</h4>
+        <p class="muted">${DB.settings.lang==="ar"?"سبا/أظافر • دولار • خدمات ومخزون":"Spa/nails • USD • services + inventory demo"}</p></div>
+      <div class="demo-card" onclick="applyDemo('empty')" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+        <div class="flag">✨</div><h4>${t("startEmptyShort")}</h4><p class="muted">${t("startEmptyNote")}</p></div>
+    </div>
+    <p class="muted" style="text-align:center;margin-top:22px;font-size:12px">${t("reloadNote")}</p>
+    <p style="text-align:center;margin-top:10px"><a href="#" onclick="toggleLang();return false">${DB.settings.lang==="ar"?"English":"العربية"}</a></p>
+  </div></div>`;
+}
+
+/* ============================================================
+   PUBLIC ONLINE BOOKING PAGE  (#book)
+   ============================================================ */
+let bk={step:1,serviceId:null,staffId:"",date:todayISO(),time:null,done:null}, pubLoaded=false;
+let rev={rating:0,done:false};
+function bookReset(){ bk={step:1,serviceId:null,staffId:"",date:todayISO(),time:null,done:null}; }
+function pubPreload(cb){ // ensure salon branding/config loaded for public pages in cloud mode
+  const wrap=document.getElementById("app");
+  if(cloudOn() && !pubLoaded){
+    wrap.innerHTML=publicShell(`<div class="empty"><div class="big">⏳</div>${t("loadingBooking")}</div>`);
+    SalonProCloud.fetchBookingConfig().then(c=>{ if(c) applyBookingConfig(c); pubLoaded=true; render(); }).catch(()=>{ pubLoaded=true; render(); });
+    return false;
+  }
+  return true;
+}
+function applyBookingConfig(cfg){
+  DB.services=cfg.services||[]; DB.staff=cfg.staff||[];
+  Object.assign(DB.settings,{salonName:cfg.salonName||DB.settings.salonName,logo:cfg.logo||"",
+    bookingIntro:cfg.intro||"",hours:cfg.hours||DB.settings.hours,bookingSlotMinutes:cfg.slot||30,
+    currency:cfg.currency||DB.settings.currency,currencySymbol:cfg.currencySymbol||DB.settings.currencySymbol,
+    taxRate:cfg.taxRate!=null?cfg.taxRate:DB.settings.taxRate,taxLabel:cfg.taxLabel||DB.settings.taxLabel,
+    bookingEnabled:cfg.bookingEnabled!==false,
+    depositEnabled:!!cfg.depositEnabled,depositPct:cfg.depositPct||0,payLink:cfg.payLink||""});
+}
+function renderPublicBooking(){
+  const s=DB.settings, wrap=document.getElementById("app");
+  if(cloudOn() && !pubLoaded){
+    wrap.innerHTML=publicShell(`<div class="empty"><div class="big">⏳</div>${t("loadingBooking")}</div>`);
+    SalonProCloud.fetchBookingConfig().then(cfg=>{ if(cfg) applyBookingConfig(cfg); pubLoaded=true; render(); }).catch(()=>{ pubLoaded=true; render(); });
+    return;
+  }
+  if(!s.bookingEnabled){ wrap.innerHTML=publicShell(`<div class="empty"><div class="big">🔒</div>${t("bookingDisabledMsg")}</div>`); return; }
+  if(!DB.services.length){ wrap.innerHTML=publicShell(`<div class="empty"><div class="big">✂️</div>${t("noServices")}</div>`); return; }
+  let inner;
+  if(bk.done) inner=bookSuccess();
+  else if(bk.step===1) inner=bookStepService();
+  else if(bk.step===2) inner=bookStepStaff();
+  else if(bk.step===3) inner=bookStepTime();
+  else inner=bookStepDetails();
+  wrap.innerHTML=publicShell(inner);
+}
+function publicShell(content){
+  const s=DB.settings;
+  return `<div style="flex:1;min-height:100vh;background:var(--bg)">
+    <div style="max-width:640px;margin:0 auto;padding:0 16px 60px">
+      <div style="background:linear-gradient(135deg,var(--primary),#b18bff);color:#fff;border-radius:0 0 24px 24px;padding:16px 24px 28px;margin:0 -16px 20px;text-align:center">
+        <div style="display:flex;justify-content:flex-end"><a href="#book" onclick="toggleLang();return false" style="color:#fff;font-weight:600;font-size:13px;opacity:.9">${s.lang==="ar"?"English":"العربية"}</a></div>
+        <div style="width:64px;height:64px;border-radius:16px;overflow:hidden;margin:2px auto 10px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800">${s.logo?`<img src="${s.logo}" style="width:100%;height:100%;object-fit:cover">`:esc((s.salonName||"S")[0])}</div>
+        <h1 style="font-size:22px">${esc(s.salonName)}</h1>
+        <p style="opacity:.92;font-size:13px;margin-top:4px">${esc(s.bookingIntro||"")}</p>
+      </div>
+      ${bk.done?"":bookSteps()}
+      <div class="card pad">${content}</div>
+      <div style="text-align:center;margin-top:18px;font-size:12px" class="muted">
+        <a href="#dashboard" onclick="location.hash='dashboard';return false">${t("salonStaff")}</a> • ${t("poweredBy")}
+      </div>
+    </div>
+    ${(aiOn()&&DB.settings.aiConcierge)?`<button class="btn primary" onclick="conciergeModal()" style="position:fixed;bottom:20px;inset-inline-end:20px;border-radius:30px;padding:12px 18px;box-shadow:0 8px 24px rgba(124,92,255,.4);z-index:50">💬 ${t("aiConciergeName")}</button>`:""}
+    </div>`;
+}
+function bookSteps(){
+  return `<div class="row" style="justify-content:center;margin-bottom:14px;gap:4px">${[1,2,3,4].map((n,i)=>{
+    const active=n===bk.step, done=n<bk.step;
+    return `<div style="display:flex;align-items:center;gap:4px">
+      <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:${active||done?'var(--primary)':'var(--surface-2)'};color:${active||done?'#fff':'var(--muted)'}">${done?'✓':n}</div>
+      ${i<3?`<div style="width:18px;height:2px;background:var(--border)"></div>`:""}</div>`;
+  }).join("")}</div>`;
+}
+function bookBack(step){ return `<button class="btn ghost sm" style="margin-bottom:12px" onclick="bk.step=${step};render()">← ${t("backStep")}</button>`; }
+function bookStepService(){
+  const cats={}; DB.services.forEach(sv=>{(cats[sv.category||"General"]=cats[sv.category||"General"]||[]).push(sv);});
+  return `<h2 style="font-size:17px;margin-bottom:14px">${t("chooseService")}</h2>
+  ${Object.entries(cats).map(([cat,arr])=>`<div style="margin-bottom:16px">
+    <div class="muted" style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${esc(cat)}</div>
+    ${arr.map(sv=>`<div onclick="bookPick('${sv.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer">
+      <div><div style="font-weight:600">${esc(sv.name)}</div><div class="muted" style="font-size:12px">${sv.duration||30} ${t("minutes")}</div></div>
+      <div style="font-weight:700;white-space:nowrap">${money(sv.price)} →</div></div>`).join("")}
+  </div>`).join("")}`;
+}
+function bookPick(id){ bk.serviceId=id; bk.step=2; render(); }
+function bookStepStaff(){
+  const opt=(id,label,sub)=>`<div onclick="bookStaff('${id}')" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer">
+    <div class="avatar">${id?initials(label):"★"}</div><div><div style="font-weight:600">${esc(label)}</div>${sub?`<div class="muted" style="font-size:12px">${esc(sub)}</div>`:""}</div></div>`;
+  return `${bookBack(1)}<h2 style="font-size:17px;margin-bottom:14px">${t("chooseStaff")}</h2>
+    ${opt("",t("anyStaff"),"")}
+    ${DB.staff.map(s=>opt(s.id,s.name,s.role||"")).join("")}`;
+}
+function bookStaff(id){ bk.staffId=id; bk.step=3; render(); }
+function bookStepTime(){
+  const sv=byId(DB.services,bk.serviceId);
+  const slots=slotsFor(bk.date,bk.staffId,sv?sv.duration:30);
+  return `${bookBack(2)}<h2 style="font-size:17px;margin-bottom:14px">${t("chooseDateTime")}</h2>
+    <div class="field"><label>${t("date")}</label><input type="date" min="${todayISO()}" max="${daysFromISO(60)}" value="${bk.date}" onchange="bk.date=this.value;bk.time=null;render()"></div>
+    ${slots.length?`<label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:8px">${t("selectTime")}</label>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px">
+      ${slots.map(tm=>`<button class="btn ${bk.time===tm?'primary':''}" style="justify-content:center" onclick="bookTime('${tm}')">${fmtTime(tm)}</button>`).join("")}</div>`
+      :`<div class="empty"><div class="big">📅</div>${t("noSlots")}</div>`}`;
+}
+function bookTime(tm){ bk.time=tm; bk.step=4; render(); }
+function bookStepDetails(){
+  const sv=byId(DB.services,bk.serviceId), st=byId(DB.staff,bk.staffId);
+  return `${bookBack(3)}<h2 style="font-size:17px;margin-bottom:14px">${t("yourDetails")}</h2>
+    <div class="card pad" style="background:var(--surface-2);margin-bottom:16px">
+      <b>${esc(sv.name)}</b> — ${money(sv.price)}<br>
+      <span class="muted" style="font-size:13px">${fmtDate(bk.date)} • ${fmtTime(bk.time)}${st?` • ${t("withStaff")} ${esc(st.name)}`:""}</span>
+      ${depositFor(sv)>0?`<div style="margin-top:8px;font-size:13px;color:var(--warn)"><b>${t("depositDue")}: ${money(depositFor(sv))}</b></div>`:""}</div>
+    <div class="field"><label>${t("name")} *</label><input id="bk_name"></div>
+    <div class="field"><label>${t("phone")} *</label><input id="bk_phone" placeholder="${DB.settings.region==="AE"?"+971 5x xxx xxxx":"(555) 000-0000"}"></div>
+    <div class="field"><label>${t("email")}</label><input id="bk_email" type="email"></div>
+    ${DB.settings.homeServiceEnabled?`<div class="field"><label>${t("homeServiceOpt")}</label><input id="bk_address" placeholder="${t("yourAddress")}"></div>`:""}
+    ${DB.settings.referralsEnabled?`<div class="field"><label>${t("referredBy")}</label><input id="bk_ref" style="text-transform:uppercase"></div>`:""}
+    <div class="field"><label>${t("notes")}</label><textarea id="bk_notes" placeholder="${t("phClientNotes")}"></textarea></div>
+    <button class="btn primary" style="width:100%;justify-content:center;padding:13px" onclick="bookConfirm()">✓ ${t("confirmBooking")}</button>`;
+}
+function bookConfirm(){
+  const name=val("bk_name"), phone=val("bk_phone"), email=val("bk_email");
+  if(!name||!phone) return toast(t("required"),"err");
+  const address=val("bk_address"), referral=val("bk_ref");
+  if(cloudOn()){
+    const sv=byId(DB.services,bk.serviceId), st=byId(DB.staff,bk.staffId);
+    SalonProCloud.submitBooking({name,phone,email,notes:val("bk_notes"),serviceId:bk.serviceId,staffId:bk.staffId,
+      date:bk.date,time:bk.time,serviceName:sv?sv.name:"",staffName:st?st.name:"",address,referral})
+      .then(()=>{ bk.done="cloud"; render(); }).catch(()=>toast(t("required"),"err"));
+    return;
+  }
+  let c=DB.clients.find(x=>digits(x.phone)&&digits(x.phone)===digits(phone));
+  if(!c){ c={id:uid("cl"),name,phone,email,notes:"",points:0,created:todayISO()}; c.refCode=genRefCode(c.name,c.id); DB.clients.push(c); awardReferral(referral,c); }
+  else if(email&&!c.email) c.email=email;
+  const appt={id:uid("appt"),clientId:c.id,serviceId:bk.serviceId,staffId:bk.staffId,date:bk.date,time:bk.time,
+    status:"booked",source:"online",reminded:false,notes:val("bk_notes"),address};
+  DB.appointments.push(appt); save(); bk.done=appt.id; render();
+}
+function bookSuccess(){
+  const a = bk.done!=="cloud" ? byId(DB.appointments,bk.done) : {serviceId:bk.serviceId,date:bk.date,time:bk.time,staffId:bk.staffId};
+  const sv=byId(DB.services,a.serviceId), st=byId(DB.staff,a.staffId);
+  return `<div style="text-align:center;padding:16px 8px">
+    <div style="font-size:54px">✅</div>
+    <h2 style="margin:10px 0">${t("bookingConfirmed")}</h2>
+    <p class="muted">${t("bookingConfirmedMsg")}</p>
+    <div class="card pad" style="background:var(--surface-2);text-align:start;margin:18px 0">
+      <b>${esc(sv.name)}</b><br><span class="muted" style="font-size:13px">${fmtDate(a.date)} • ${fmtTime(a.time)}${st?` • ${t("withStaff")} ${esc(st.name)}`:""}</span></div>
+    ${depositFor(sv)>0?`<div class="card pad" style="text-align:start;margin:0 0 14px;border:1px solid var(--warn)"><div style="font-size:13px">${t("depositNote")} <b>${money(depositFor(sv))}</b></div>${DB.settings.payLink?`<a class="btn primary" style="margin-top:10px" href="${esc(DB.settings.payLink)}" target="_blank" rel="noopener">💳 ${t("payNow")}</a>`:""}</div>`:""}
+    <button class="btn primary" onclick="bookReset();render()">${t("bookAnother")}</button></div>`;
+}
+
+/* ---- public review page (#review) ---- */
+function renderPublicReview(){
+  if(!pubPreload()) return;
+  const wrap=document.getElementById("app");
+  if(rev.done){ wrap.innerHTML=publicShell(`<div style="text-align:center;padding:22px"><div style="font-size:54px">💜</div><h2 style="margin:10px 0">${t("reviewThanks")}</h2></div>`); return; }
+  wrap.innerHTML=publicShell(`
+    <h2 style="font-size:17px;margin-bottom:14px">${t("leaveReview")}</h2>
+    <div class="field"><label>${t("name")} *</label><input id="rv_name"></div>
+    <div class="field"><label>${t("yourRating")} *</label>
+      <div id="rv_stars" style="font-size:32px;cursor:pointer;letter-spacing:6px;color:var(--warn)">${[1,2,3,4,5].map(n=>`<span onclick="revStar(${n})" data-n="${n}">☆</span>`).join("")}</div></div>
+    <div class="field"><label>${t("yourReview")}</label><textarea id="rv_text" placeholder="…"></textarea></div>
+    <button class="btn primary" style="width:100%;justify-content:center;padding:13px" onclick="submitReview()">${t("submitReview")}</button>`);
+}
+function revStar(n){ rev.rating=n; const b=document.getElementById("rv_stars"); if(b)[...b.children].forEach(s=>s.textContent=(+s.dataset.n<=n)?"★":"☆"); }
+function submitReview(){
+  const name=val("rv_name"); if(!name||!rev.rating) return toast(t("required"),"err");
+  const payload={name,rating:rev.rating,text:val("rv_text"),date:todayISO()};
+  if(cloudOn()&&SalonProCloud.submitReview){ SalonProCloud.submitReview(payload).then(()=>{rev.done=true;render();}).catch(()=>toast(t("required"),"err")); }
+  else { DB.reviews.push(Object.assign({id:uid("rv")},payload)); save(); rev.done=true; render(); }
+}
+
+/* ---- public manage / cancel page (#manage) ---- */
+function renderPublicManage(){
+  if(!pubPreload()) return;
+  document.getElementById("app").innerHTML=publicShell(`
+    <h2 style="font-size:17px;margin-bottom:6px">${t("manageBooking")}</h2>
+    <p class="muted" style="margin-bottom:14px">${t("enterPhoneMsg")}</p>
+    <div class="inline-in"><input id="mg_phone" placeholder="${DB.settings.region==='AE'?'+971 5x xxx xxxx':'(555) 000-0000'}">
+      <button class="btn primary" onclick="manageFind()">${t("findBookings")}</button></div>
+    <div id="mg_results" style="margin-top:16px"></div>`);
+}
+function manageFind(){
+  const box=document.getElementById("mg_results"), ph=val("mg_phone"); if(!ph||!box) return;
+  if(cloudOn()){
+    box.innerHTML=`<div class="card pad"><p style="margin-bottom:12px">${t("confirmCancelQ")}</p>
+      <button class="btn danger" onclick="manageCloudCancel('${esc(ph)}')">${t("cancelBooking")}</button></div>`;
+    return;
+  }
+  const c=DB.clients.find(x=>digits(x.phone)&&digits(x.phone)===digits(ph)), today=todayISO();
+  const list=c?DB.appointments.filter(a=>a.clientId===c.id&&a.date>=today&&a.status!=="cancelled"&&a.status!=="completed")
+    .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)):[];
+  box.innerHTML=list.length?list.map(a=>{const sv=byId(DB.services,a.serviceId);return `<div class="card pad" style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
+    <div style="flex:1"><b>${esc(sv?sv.name:"")}</b><div class="muted" style="font-size:13px">${fmtDate(a.date)} • ${fmtTime(a.time)}</div></div>
+    <button class="btn danger sm" onclick="manageCancel('${a.id}')">${t("cancelBooking")}</button></div>`;}).join("")
+    :`<p class="muted">${t("noBookingsFound")}</p>`;
+}
+function manageCancel(id){ const a=byId(DB.appointments,id); if(!a) return; a.status="cancelled"; save(); toast(t("cancelDone"),"ok"); manageFind(); }
+function manageCloudCancel(ph){
+  if(SalonProCloud&&SalonProCloud.submitBooking){
+    SalonProCloud.submitBooking({type:"cancel",phone:ph,name:"(cancellation request)",note:"Customer requested cancellation via Manage page"})
+      .then(()=>{ document.getElementById("mg_results").innerHTML=`<p class="muted">✓ ${t("cancelRequested")}</p>`; })
+      .catch(()=>toast(t("required"),"err"));
+  }
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function vDashboard(el){
+  const today=todayISO();
+  const todays=DB.appointments.filter(a=>a.date===today&&a.status!=="cancelled");
+  const paidInv=DB.invoices.filter(i=>i.status==="paid");
+  const revToday=paidInv.filter(i=>i.date===today).reduce((s,i)=>s+i.total,0);
+  const mprefix=today.slice(0,7);
+  const revMonth=paidInv.filter(i=>i.date.slice(0,7)===mprefix).reduce((s,i)=>s+i.total,0);
+  const kpi=(lbl,val,sub,ic,bg)=>`<div class="kpi"><div style="display:flex;justify-content:space-between">
+    <div class="lbl">${lbl}</div><div class="chip" style="background:${bg}">${ic}</div></div>
+    <div class="val">${val}</div><div class="sub">${sub||""}</div></div>`;
+
+  const upcoming=DB.appointments.filter(a=>a.date>=today&&a.status!=="cancelled"&&a.status!=="completed")
+    .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).slice(0,7);
+  const svcCount={};
+  paidInv.forEach(i=>i.items.forEach(it=>{ if(it.type==="service"){svcCount[it.name]=(svcCount[it.name]||0)+it.qty;} }));
+  const tops=Object.entries(svcCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxTop=tops.length?tops[0][1]:1;
+
+  el.innerHTML=`
+  <div class="grid kpis" style="margin-bottom:18px">
+    ${kpi(t("todayAppts"),todays.length,`${todays.filter(a=>a.status==="completed").length} ${t("completed")}`,"📅","var(--primary-soft)")}
+    ${kpi(t("revenueToday"),money(revToday),`${paidInv.filter(i=>i.date===today).length} ${t("paid")}`,"💵","var(--success-soft)")}
+    ${kpi(t("revenueMonth"),money(revMonth),new Date().toLocaleDateString(DB.settings.lang==="ar"?"ar-AE":"en-US",{month:"long"}),"📈","var(--warn-soft)")}
+    ${kpi(t("totalClients"),DB.clients.length,t("clients"),"👤","var(--primary-soft)")}
+  </div>
+  ${renderRequestsCard()}
+  ${onlineAlert()}
+  <div class="grid" style="grid-template-columns:1.4fr 1fr">
+    <div class="card pad">
+      <div class="section-head"><h2>${t("upcoming")}</h2><div class="spacer"></div>
+        <button class="btn sm" onclick="navigate('appointments')">${t("appointments")} →</button></div>
+      ${upcoming.length?`<div class="t-wrap"><table><thead><tr>
+        <th>${t("client")}</th><th>${t("service")}</th><th>${t("date")}</th><th>${t("status")}</th></tr></thead><tbody>
+        ${upcoming.map(a=>{const c=byId(DB.clients,a.clientId);const sv=byId(DB.services,a.serviceId);
+          return `<tr onclick="apptModal('${a.id}')" style="cursor:pointer">
+          <td><div class="row" style="gap:9px"><div class="avatar">${initials(c?c.name:"?")}</div>${esc(c?c.name:"—")}</div></td>
+          <td>${esc(sv?sv.name:a.serviceName||"—")}</td>
+          <td>${fmtDate(a.date)}<div class="muted" style="font-size:12px">${fmtTime(a.time)}</div></td>
+          <td>${statusBadge(a.status)}</td></tr>`;}).join("")}
+        </tbody></table></div>`:emptyBlock("📅",t("noUpcoming"))}
+    </div>
+    <div class="card pad">
+      <div class="section-head"><h2>${t("topServices")}</h2></div>
+      ${tops.length?tops.map(([name,cnt])=>`<div class="bar-row">
+        <div class="name" title="${esc(name)}">${esc(name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(cnt/maxTop*100)}%"></div></div>
+        <div class="bar-val">${cnt} ${t("sold")}</div></div>`).join(""):emptyBlock("✂️",t("noSalesYet"))}
+      <div style="margin-top:18px" class="section-head"><h2>${t("newInvoice")}</h2></div>
+      <div class="row"><button class="btn primary" onclick="invoiceModal()">💳 ${t("newInvoice")}</button>
+        <button class="btn" onclick="apptModal()">📅 ${t("newBooking")}</button></div>
+    </div>
+  </div>
+  ${renderSmartCard()}
+  ${renderRemindersCard()}
+  ${renderReviewsCard()}`;
+}
+function emptyBlock(icon,msg){ return `<div class="empty"><div class="big">${icon}</div>${esc(msg)}<div style="font-size:12px;margin-top:4px">${t("getStarted")}</div></div>`; }
+function statusBadge(s){
+  const map={booked:["b-blue","booked"],confirmed:["b-purple","confirmed"],completed:["b-green","completed"],
+    cancelled:["b-red","cancelled"],noshow:["b-orange","noshow"]};
+  const [cls,key]=map[s]||["b-gray",s]; return `<span class="badge ${cls}">${esc(t(key))}</span>`;
+}
+function remindersDue(){
+  const today=todayISO(), tom=daysFromISO(1);
+  return DB.appointments.filter(a=>(a.date===today||a.date===tom)&&(a.status==="booked"||a.status==="confirmed")&&!a.reminded)
+    .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+}
+function renderRemindersCard(){
+  const due=remindersDue();
+  return `<div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>🔔 ${t("remindersTitle")}</h2><div class="spacer"></div><span class="badge ${due.length?'b-orange':'b-green'}">${due.length}</span></div>
+    ${due.length?`<div class="t-wrap"><table><tbody>
+      ${due.map(a=>{const c=byId(DB.clients,a.clientId);const sv=byId(DB.services,a.serviceId);
+      return `<tr>
+        <td><div class="row" style="gap:9px"><div class="avatar">${initials(c?c.name:"?")}</div><div>${esc(c?c.name:"—")}<div class="muted" style="font-size:12px">${esc(sv?sv.name:"")}</div></div></div></td>
+        <td>${a.date===todayISO()?t("todayAppts"):t("tomorrow")}<div class="muted" style="font-size:12px">${fmtTime(a.time)}</div></td>
+        <td style="text-align:end"><button class="btn sm" onclick="sendMsg('${a.id}','reminder')">💬 ${t("sendReminder")}</button></td></tr>`;}).join("")}
+    </tbody></table></div>`:`<p class="muted">✓ ${t("reminded")}</p>`}
+  </div>`;
+}
+function renderRequestsCard(){
+  if(!cloudOn() || !cloudRequests.length) return "";
+  return `<div class="card pad" style="margin-bottom:18px;border-inline-start:4px solid var(--success)">
+    <div class="section-head"><h2>🌐 ${t("incomingBookings")}</h2><div class="spacer"></div><span class="badge b-green">${cloudRequests.length}</span></div>
+    <div class="t-wrap"><table><tbody>
+    ${cloudRequests.map(r=>{const p=r.payload||{};return `<tr>
+      <td><div class="row" style="gap:9px"><div class="avatar">${initials(p.name)}</div><div>${esc(p.name||"—")}<div class="muted" style="font-size:12px">${esc(p.phone||"")}</div></div></div></td>
+      <td>${p.type==="cancel"?`<span class="badge b-red">${t("cancelRequest")}</span>`:`${esc(p.serviceName||"")}<div class="muted" style="font-size:12px">${fmtDate(p.date)} ${fmtTime(p.time)}${p.staffName?" • "+esc(p.staffName):""}</div>`}</td>
+      <td style="text-align:end"><div class="row" style="justify-content:flex-end;gap:6px">
+        <button class="btn sm success" onclick="acceptCloudRequest('${r.id}')">✓ ${t("accept")}</button>
+        <button class="btn sm ghost" title="${t("declineWord")}" onclick="declineCloudRequest('${r.id}')">✕</button></div></td></tr>`;}).join("")}
+    </tbody></table></div></div>`;
+}
+function acceptCloudRequest(id){
+  const req=cloudRequests.find(r=>r.id===id); if(!req) return;
+  const p=req.payload||{};
+  if(p.type==="cancel"){
+    const cc=DB.clients.find(x=>digits(x.phone)&&digits(x.phone)===digits(p.phone)); const today=todayISO();
+    if(cc){ DB.appointments.forEach(a=>{ if(a.clientId===cc.id&&a.date>=today&&a.status!=="completed"&&a.status!=="cancelled") a.status="cancelled"; }); save(); }
+    if(window.SalonProCloud&&SalonProCloud.updateRequest){ SalonProCloud.updateRequest(id,"accepted"); }
+    cloudRequests=cloudRequests.filter(r=>r.id!==id); render(); toast(t("cancelDone"),"ok"); return;
+  }
+  let c=DB.clients.find(x=>digits(x.phone)&&digits(x.phone)===digits(p.phone));
+  if(!c){ c={id:uid("cl"),name:p.name||"Customer",phone:p.phone||"",email:p.email||"",notes:p.notes||"",points:0,created:todayISO()}; c.refCode=genRefCode(c.name,c.id); DB.clients.push(c); awardReferral(p.referral,c); }
+  DB.appointments.push({id:uid("appt"),clientId:c.id,serviceId:p.serviceId,staffId:p.staffId||"",date:p.date,time:p.time,
+    status:"booked",source:"online",reminded:false,notes:p.notes||"",address:p.address||""});
+  save();
+  if(window.SalonProCloud && SalonProCloud.updateRequest){ try{ SalonProCloud.updateRequest(id,"accepted"); }catch(e){} }
+  cloudRequests=cloudRequests.filter(r=>r.id!==id);
+  render(); toast(t("saved"),"ok");
+}
+function declineCloudRequest(id){
+  if(window.SalonProCloud && SalonProCloud.updateRequest){ try{ SalonProCloud.updateRequest(id,"declined"); }catch(e){} }
+  cloudRequests=cloudRequests.filter(r=>r.id!==id);
+  render(); toast(t("deleted"));
+}
+function onlineAlert(){
+  const today=todayISO();
+  const n=DB.appointments.filter(a=>a.source==="online"&&a.date>=today&&a.status!=="cancelled"&&a.status!=="completed").length;
+  if(!n) return "";
+  return `<div class="card pad" style="margin-bottom:18px;border-inline-start:4px solid var(--primary);display:flex;align-items:center;gap:12px">
+    <div style="font-size:22px">🌐</div><div><b>${n}</b> ${n===1?t("newOnlineOne"):t("newOnlineMany")}</div>
+    <div class="spacer"></div><button class="btn sm" onclick="navigate('appointments')">${t("appointments")} →</button></div>`;
+}
+function sendMsg(id,kind){
+  const a=byId(DB.appointments,id); const c=a?byId(DB.clients,a.clientId):null;
+  if(!c||(!digits(c.phone)&&!c.email)) return toast(t("noPhone"),"err");
+  sendVia(c,fillTemplate(kind,a));
+  if(kind==="reminder"){ a.reminded=true; save(); }
+  closeModal(); render(); toast(t("tOpeningEmail"),"ok");
+}
+function messageModal(id){
+  const a=byId(DB.appointments,id), c=byId(DB.clients,a.clientId);
+  const ch=DB.settings.notifyChannel||"whatsapp";
+  const chLabel=ch==="whatsapp"?t("whatsapp"):ch==="sms"?t("sms"):t("emailCh");
+  const opt=(kind,icon,label)=>`<button class="btn" style="width:100%;justify-content:flex-start;margin-bottom:8px" onclick="sendMsg('${id}','${kind}')">${icon} ${label}</button>
+    <div class="muted" style="font-size:12px;margin:-4px 0 12px;padding-inline-start:6px">"${esc(fillTemplate(kind,a))}"</div>`;
+  openModal(t("messageClient")+" — "+(c?c.name:""),
+    `<p class="muted" style="margin-bottom:14px">${t("sendViaLbl")}: <b>${chLabel}</b> ${c?"• "+esc(c.phone||c.email||""):""}</p>
+     ${opt("confirm","✅",t("sendConfirmation"))}
+     ${opt("reminder","🔔",t("sendReminder"))}
+     ${opt("review","⭐",t("requestReview"))}`,
+    `<button class="btn" onclick="closeModal()">${t("close")}</button>`);
+}
+
+/* ============================================================
+   APPOINTMENTS
+   ============================================================ */
+let apptFilter="upcoming", apptSearch="";
+function vAppointments(el){
+  let list=[...DB.appointments].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+  const today=todayISO();
+  if(apptFilter==="upcoming") list=list.filter(a=>a.date>=today&&a.status!=="cancelled"&&a.status!=="completed").reverse();
+  else if(apptFilter==="today") list=list.filter(a=>a.date===today);
+  else if(apptFilter!=="all") list=list.filter(a=>a.status===apptFilter);
+  if(apptSearch){const q=apptSearch.toLowerCase();list=list.filter(a=>{const c=byId(DB.clients,a.clientId);const sv=byId(DB.services,a.serviceId);
+    return (c&&c.name.toLowerCase().includes(q))||(sv&&sv.name.toLowerCase().includes(q));});}
+  const f=(k,l)=>`<button class="pill ${apptFilter===k?'active':''}" onclick="apptFilter='${k}';render()">${l}</button>`;
+  el.innerHTML=`
+  <div class="section-head">
+    <div class="row">${f("upcoming",t("upcoming"))}${f("today",t("todayAppts"))}${f("completed",t("completed"))}${f("cancelled",t("cancelled"))}${f("all",t("all"))}</div>
+    <div class="spacer"></div>
+    <div class="searchbar">🔍<input placeholder="${t("search")}" value="${esc(apptSearch)}" oninput="apptSearch=this.value;debouncedApptRender()"></div>
+    <button class="btn primary" onclick="apptModal()">＋ ${t("newBooking")}</button>
+  </div>
+  <div class="card"><div class="t-wrap"><table><thead><tr>
+    <th>${t("client")}</th><th>${t("service")}</th><th>${t("staffMember")}</th><th>${t("date")}</th><th>${t("status")}</th><th style="text-align:end">${t("action")}</th>
+  </tr></thead><tbody>
+    ${list.length?list.map(a=>{const c=byId(DB.clients,a.clientId);const sv=byId(DB.services,a.serviceId);const st=byId(DB.staff,a.staffId);
+      return `<tr>
+      <td><div class="row" style="gap:9px"><div class="avatar">${initials(c?c.name:"?")}</div><div>${esc(c?c.name:"—")}<div class="muted" style="font-size:12px">${esc(c?c.phone:"")}</div></div></div></td>
+      <td>${esc(sv?sv.name:a.serviceName||"—")}${sv?`<div class="muted" style="font-size:12px">${money(sv.price)}</div>`:""}${a.address?`<div style="font-size:12px;margin-top:3px"><span class="badge b-blue">🏠 ${t("atHome")}</span> <a href="${mapsLink(a.address)}" target="_blank" rel="noopener">🧭 ${t("navigate")}</a></div>`:""}</td>
+      <td>${esc(st?st.name:"—")}</td>
+      <td>${fmtDate(a.date)}<div class="muted" style="font-size:12px">${fmtTime(a.time)}</div></td>
+      <td>${statusBadge(a.status)}${a.source==="online"?` <span class="badge b-purple">🌐 ${t("onlineBadge")}</span>`:""}</td>
+      <td style="text-align:end"><div class="row" style="justify-content:flex-end;gap:6px">
+        ${a.status!=="completed"&&a.status!=="cancelled"?`<button class="btn sm success" title="${t("checkout")}" onclick="completeAppt('${a.id}')">✓ ${t("bill")}</button>`:""}
+        <button class="btn sm ghost" title="${t("messageClient")}" onclick="messageModal('${a.id}')">💬</button>
+        <button class="btn sm ghost" onclick="apptModal('${a.id}')">✏️</button>
+        <button class="btn sm ghost" onclick="delAppt('${a.id}')">🗑️</button>
+      </div></td></tr>`;}).join(""):`<tr><td colspan="6">${emptyBlock("📅",t("noAppointments"))}</td></tr>`}
+  </tbody></table></div></div>`;
+}
+let _adt; function debouncedApptRender(){ clearTimeout(_adt); _adt=setTimeout(render,180); }
+
+function apptModal(id){
+  const a=id?byId(DB.appointments,id):null;
+  const clientOpts=DB.clients.map(c=>`<option value="${c.id}" ${a&&a.clientId===c.id?"selected":""}>${esc(c.name)}</option>`).join("");
+  const svcOpts=DB.services.map(s=>`<option value="${s.id}" ${a&&a.serviceId===s.id?"selected":""}>${esc(s.name)} — ${money(s.price)}</option>`).join("");
+  const staffOpts=`<option value="">—</option>`+DB.staff.map(s=>`<option value="${s.id}" ${a&&a.staffId===s.id?"selected":""}>${esc(s.name)}</option>`).join("");
+  const stOpts=["booked","confirmed","completed","cancelled","noshow"].map(s=>`<option value="${s}" ${a&&a.status===s?"selected":(!a&&s==="booked"?"selected":"")}>${t(s)}</option>`).join("");
+  openModal(id?t("edit")+" "+t("appointment"):t("newBooking"),`
+    ${DB.clients.length?"":`<p class="muted" style="margin-bottom:12px">➕ <a href="#" onclick="closeModal();clientModal();return false">${t("newClient")}</a></p>`}
+    <div class="form-grid">
+      <div class="field full"><label>${t("client")} *</label><select id="f_client">${clientOpts}</select></div>
+      <div class="field full"><label>${t("service")} *</label><select id="f_service">${svcOpts}</select></div>
+      <div class="field"><label>${t("date")} *</label><input type="date" id="f_date" value="${a?a.date:todayISO()}"></div>
+      <div class="field"><label>${t("time")} *</label><input type="time" id="f_time" value="${a?a.time:"10:00"}"></div>
+      <div class="field"><label>${t("staffMember")}</label><select id="f_staff">${staffOpts}</select></div>
+      <div class="field"><label>${t("status")}</label><select id="f_status">${stOpts}</select></div>
+      <div class="field full"><label>${t("notes")}</label><textarea id="f_notes">${a?esc(a.notes||""):""}</textarea></div>
+    </div>`,
+    `<button class="btn" onclick="closeModal()">${t("cancel")}</button>
+     <button class="btn primary" onclick="saveAppt('${id||""}')">${t("save")}</button>`);
+}
+function saveAppt(id){
+  const cid=val("f_client"), sid=val("f_service"), date=val("f_date"), time=val("f_time");
+  if(!cid||!sid||!date||!time) return toast(t("required"),"err");
+  const prev=id?byId(DB.appointments,id):null;
+  const rec={id:id||uid("appt"),clientId:cid,serviceId:sid,date,time,
+    staffId:val("f_staff"),status:val("f_status"),notes:val("f_notes"),
+    source:prev?prev.source:"salon",reminded:prev?prev.reminded:false};
+  if(id){const i=DB.appointments.findIndex(a=>a.id===id);DB.appointments[i]=rec;}
+  else DB.appointments.push(rec);
+  save();closeModal();render();toast(t("saved"),"ok");
+}
+function delAppt(id){ confirmDialog("",()=>{DB.appointments=DB.appointments.filter(a=>a.id!==id);save();render();toast(t("deleted"));}); }
+function completeAppt(id){
+  const a=byId(DB.appointments,id); if(!a) return;
+  a.status="completed"; save();
+  invoiceModal(null,{clientId:a.clientId,serviceId:a.serviceId,staffId:a.staffId,apptId:a.id});
+}
+
+/* ============================================================
+   CLIENTS
+   ============================================================ */
+let clientSearch="";
+function vClients(el){
+  let list=[...DB.clients];
+  if(clientSearch){const q=clientSearch.toLowerCase();list=list.filter(c=>c.name.toLowerCase().includes(q)||(c.phone||"").includes(q)||(c.email||"").toLowerCase().includes(q));}
+  const stats=c=>{ const inv=DB.invoices.filter(i=>i.clientId===c.id&&i.status==="paid");
+    return {visits:inv.length,spent:inv.reduce((s,i)=>s+i.total,0),last:inv.map(i=>i.date).sort().pop()}; };
+  el.innerHTML=`
+  <div class="section-head"><div class="spacer"></div>
+    <div class="searchbar">🔍<input placeholder="${t("search")}" value="${esc(clientSearch)}" oninput="clientSearch=this.value;debouncedClient()"></div>
+    <button class="btn primary" onclick="clientModal()">＋ ${t("newClient")}</button></div>
+  <div class="card"><div class="t-wrap"><table><thead><tr>
+    <th>${t("name")}</th><th>${t("phone")}</th><th>${t("visits")}</th><th>${t("totalSpent")}</th><th>${t("lastVisit")}</th><th style="text-align:end">${t("action")}</th>
+  </tr></thead><tbody>
+    ${list.length?list.map(c=>{const s=stats(c);return `<tr>
+      <td><div class="row" style="gap:10px"><div class="avatar">${initials(c.name)}</div><div>${esc(c.name)}${DB.settings.loyaltyEnabled&&c.points?` <span class="badge b-purple">⭐ ${c.points}</span>`:""}${DB.settings.referralsEnabled&&c.refCode?` <span class="badge b-gray" title="${t("referralCode")}">${esc(c.refCode)}</span>`:""}<div class="muted" style="font-size:12px">${esc(c.email||"")}</div></div></div></td>
+      <td>${esc(c.phone||"—")}</td><td>${s.visits}</td><td>${money(s.spent)}</td><td>${s.last?fmtDate(s.last):"—"}</td>
+      <td style="text-align:end"><div class="row" style="justify-content:flex-end;gap:6px">
+        <button class="btn sm" onclick="apptModalFor('${c.id}')">📅</button>
+        <button class="btn sm ghost" onclick="clientModal('${c.id}')">✏️</button>
+        <button class="btn sm ghost" onclick="delClient('${c.id}')">🗑️</button></div></td></tr>`;}).join("")
+      :`<tr><td colspan="6">${emptyBlock("👤",t("noClients"))}</td></tr>`}
+  </tbody></table></div></div>`;
+}
+let _cdt; function debouncedClient(){ clearTimeout(_cdt); _cdt=setTimeout(render,180); }
+function apptModalFor(cid){ apptModal(); setTimeout(()=>{const s=document.getElementById("f_client"); if(s) s.value=cid;},30); }
+function clientModal(id){
+  const c=id?byId(DB.clients,id):null;
+  openModal(id?t("edit")+" "+t("client"):t("newClient"),`
+    <div class="form-grid">
+      <div class="field full"><label>${t("name")} *</label><input id="c_name" value="${c?esc(c.name):""}"></div>
+      <div class="field"><label>${t("phone")}</label><input id="c_phone" value="${c?esc(c.phone||""):""}"></div>
+      <div class="field"><label>${t("email")}</label><input id="c_email" type="email" value="${c?esc(c.email||""):""}"></div>
+      <div class="field full"><label>${t("notes")}</label><textarea id="c_notes" placeholder="${t("phClientNotes")}">${c?esc(c.notes||""):""}</textarea></div>
+    </div>`,
+    `<button class="btn" onclick="closeModal()">${t("cancel")}</button>
+     <button class="btn primary" onclick="saveClient('${id||""}')">${t("save")}</button>`);
+}
+function saveClient(id){
+  const name=val("c_name"); if(!name) return toast(t("required"),"err");
+  const rec={id:id||uid("cl"),name,phone:val("c_phone"),email:val("c_email"),notes:val("c_notes"),created:id?byId(DB.clients,id).created:todayISO()};
+  if(id){const i=DB.clients.findIndex(x=>x.id===id);DB.clients[i]=rec;}else DB.clients.push(rec);
+  save();closeModal();render();toast(t("saved"),"ok");
+}
+function delClient(id){ confirmDialog("",()=>{DB.clients=DB.clients.filter(c=>c.id!==id);save();render();toast(t("deleted"));}); }
+
+/* ============================================================
+   SERVICES
+   ============================================================ */
+const SERVICE_LIBRARY=[
+  ["Women's Haircut","Hair",45,55],["Men's Haircut","Hair",30,35],["Kids Haircut","Hair",30,25],
+  ["Blow Dry","Hair",30,40],["Wash & Blow Dry","Hair",45,45],["Fringe / Bang Trim","Hair",15,15],
+  ["Root Touch-Up","Color",60,75],["Full Color","Color",120,130],["Highlights (Full)","Color",150,165],
+  ["Highlights (Partial)","Color",90,110],["Balayage","Color",180,220],["Ombré","Color",180,210],
+  ["Toner / Gloss","Color",30,45],["Color Correction","Color",240,300],["Fashion / Creative Color","Color",180,250],
+  ["Keratin Treatment","Treatment",150,190],["Hair Botox","Treatment",120,160],["Olaplex Treatment","Treatment",45,60],
+  ["Deep Conditioning","Treatment",30,35],["Scalp Treatment","Treatment",45,55],["Hair Spa","Treatment",60,70],
+  ["Bridal Hair","Styling",120,150],["Event / Party Styling","Styling",60,85],["Updo","Styling",60,80],
+  ["Braiding","Styling",60,70],["Curls / Waves","Styling",45,55],["Hair Straightening","Styling",45,50],
+  ["Classic Manicure","Nails",30,25],["Gel Manicure","Nails",45,40],["Classic Pedicure","Nails",45,35],
+  ["Gel Pedicure","Nails",60,50],["Nail Art","Nails",30,25],["Acrylic Extensions","Nails",90,75],["Gel Removal","Nails",20,15],
+  ["Express Facial","Facial & Skin",30,45],["Classic Facial","Facial & Skin",60,75],["Deep Cleansing Facial","Facial & Skin",75,95],
+  ["Anti-Aging Facial","Facial & Skin",75,120],["Hydrafacial","Facial & Skin",60,140],["Microdermabrasion","Facial & Skin",45,110],["Chemical Peel","Facial & Skin",45,100],
+  ["Eyebrow Threading","Waxing & Threading",15,12],["Upper Lip Threading","Waxing & Threading",10,8],["Full Face Threading","Waxing & Threading",30,30],
+  ["Underarm Wax","Waxing & Threading",15,18],["Full Arm Wax","Waxing & Threading",30,35],["Full Leg Wax","Waxing & Threading",45,55],
+  ["Bikini Wax","Waxing & Threading",30,40],["Brazilian Wax","Waxing & Threading",45,55],["Full Body Wax","Waxing & Threading",90,130],
+  ["Lash Lift","Lashes & Brows",60,70],["Eyelash Extensions (Full)","Lashes & Brows",120,120],["Lash Extensions (Refill)","Lashes & Brows",60,60],
+  ["Brow Tint","Lashes & Brows",20,20],["Brow Lamination","Lashes & Brows",45,55],["Henna Brows","Lashes & Brows",30,35],
+  ["Party / Evening Makeup","Makeup",60,70],["Engagement Makeup","Makeup",90,150],["Bridal Makeup","Makeup",120,250],["HD Makeup","Makeup",75,120],
+  ["Swedish Massage","Massage & Spa",60,90],["Deep Tissue Massage","Massage & Spa",60,110],["Hot Stone Massage","Massage & Spa",75,130],
+  ["Aromatherapy Massage","Massage & Spa",60,105],["Head & Shoulder Massage","Massage & Spa",30,45],["Foot Reflexology","Massage & Spa",45,60],
+  ["Body Scrub","Massage & Spa",45,75],["Body Wrap","Massage & Spa",60,95],
+  ["Moroccan Bath (Hammam)","Hammam & Regional",90,150],["Turkish Bath","Hammam & Regional",90,160],["Henna Application","Hammam & Regional",30,40],["Bridal Henna","Hammam & Regional",120,200],
+  ["Beard Trim","Men's Grooming",20,20],["Beard Styling","Men's Grooming",30,30],["Hot Towel Shave","Men's Grooming",30,35],["Head Shave","Men's Grooming",20,25],["Men's Facial","Men's Grooming",45,60],
+  ["Bridal Package","Packages",240,600],["Pamper Day Package","Packages",180,250],["Mother & Daughter Package","Packages",120,180]
+];
+function serviceLibraryModal(){
+  const existing=new Set(DB.services.map(s=>s.name.toLowerCase()));
+  const cats={}; SERVICE_LIBRARY.forEach((r,i)=>{(cats[r[1]]=cats[r[1]]||[]).push([i,r[0],r[2],r[3]]);});
+  const body=`<p class="muted" style="margin-bottom:14px">${t("selectServices")}</p>
+    ${Object.entries(cats).map(([cat,arr])=>`<div style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">${esc(cat)}</div>
+      ${arr.map(([i,name,dur,price])=>{const has=existing.has(name.toLowerCase());
+        return `<label style="display:flex;align-items:center;gap:10px;padding:6px 4px;${has?'opacity:.4':'cursor:pointer'}">
+          <input type="checkbox" style="width:auto" value="${i}" ${has?'disabled checked':''}>
+          <span style="flex:1">${esc(name)}</span><span class="muted" style="font-size:12px;white-space:nowrap">${dur} ${t("minutes")} • ${money(price)}</span></label>`;}).join("")}
+    </div>`).join("")}`;
+  openModal(t("serviceLibrary"),body,
+    `<button class="btn" onclick="closeModal()">${t("cancel")}</button>
+     <button class="btn primary" onclick="addLibraryServices()">${t("addSelected")}</button>`,{lg:true});
+}
+function addLibraryServices(){
+  const boxes=document.querySelectorAll("#modal-root input[type=checkbox]:checked:not(:disabled)");
+  let n=0; boxes.forEach(b=>{const r=SERVICE_LIBRARY[+b.value]; if(r){DB.services.push({id:uid("sv"),name:r[0],category:r[1],duration:r[2],price:r[3]}); n++;}});
+  save(); closeModal(); render(); toast(n+" "+t("added"),"ok");
+}
+function vServices(el){
+  const cats={}; DB.services.forEach(s=>{(cats[s.category||"General"]=cats[s.category||"General"]||[]).push(s);});
+  el.innerHTML=`
+  <div class="section-head"><div class="spacer"></div>
+    <button class="btn" onclick="serviceLibraryModal()">📚 ${t("addFromLibrary")}</button>
+    <button class="btn primary" onclick="serviceModal()">＋ ${t("add")} ${t("service")}</button></div>
+  ${DB.services.length?Object.entries(cats).map(([cat,arr])=>`
+    <div class="card pad" style="margin-bottom:16px">
+      <div class="section-head"><h2>${esc(cat)}</h2><div class="spacer"></div><span class="muted">${arr.length}</span></div>
+      <div class="t-wrap"><table><thead><tr><th>${t("service")}</th><th>${t("duration")}</th><th>${t("price")}</th><th style="text-align:end">${t("action")}</th></tr></thead><tbody>
+      ${arr.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.duration||"—"} ${t("min")}</td><td><b>${money(s.price)}</b></td>
+        <td style="text-align:end"><button class="btn sm ghost" onclick="serviceModal('${s.id}')">✏️</button>
+        <button class="btn sm ghost" onclick="delService('${s.id}')">🗑️</button></td></tr>`).join("")}
+      </tbody></table></div></div>`).join("")
+    :`<div class="card">${emptyBlock("✂️",t("noServices"))}</div>`}`;
+}
+function serviceModal(id){
+  const s=id?byId(DB.services,id):null;
+  openModal(id?t("edit")+" "+t("service"):t("add")+" "+t("service"),`
+    <div class="form-grid">
+      <div class="field full"><label>${t("name")} *</label><input id="s_name" value="${s?esc(s.name):""}"></div>
+      <div class="field"><label>${t("category")}</label><input id="s_cat" list="catlist" value="${s?esc(s.category||""):""}" placeholder="${t("phSvcCat")}">
+        <datalist id="catlist">${[...new Set(DB.services.map(x=>x.category).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join("")}</datalist></div>
+      <div class="field"><label>${t("duration")}</label><input id="s_dur" type="number" min="0" value="${s?s.duration||"":"30"}"></div>
+      <div class="field full"><label>${t("price")} *</label><input id="s_price" type="number" min="0" step="0.01" value="${s?s.price:""}"></div>
+    </div>`,
+    `<button class="btn" onclick="closeModal()">${t("cancel")}</button>
+     <button class="btn primary" onclick="saveService('${id||""}')">${t("save")}</button>`);
+}
+function saveService(id){
+  const name=val("s_name"),price=parseFloat(val("s_price"));
+  if(!name||isNaN(price)) return toast(t("required"),"err");
+  const rec={id:id||uid("sv"),name,category:val("s_cat")||"General",duration:parseInt(val("s_dur"))||0,price};
+  if(id){const i=DB.services.findIndex(x=>x.id===id);DB.services[i]=rec;}else DB.services.push(rec);
+  save();closeModal();render();toast(t("saved"),"ok");
+}
+function delService(id){ confirmDialog("",()=>{DB.services=DB.services.filter(s=>s.id!==id);save();render();toast(t("deleted"));}); }
+
+/* ============================================================
+   STAFF
+   ============================================================ */
+function vStaff(el){
+  el.innerHTML=`
+  <div class="section-head"><div class="spacer"></div>
+    <button class="btn primary" onclick="staffModal()">＋ ${t("add")} ${t("staffMember")}</button></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
+  ${DB.staff.length?DB.staff.map(s=>{
+    const rev=DB.invoices.filter(i=>i.status==="paid").reduce((sum,i)=>sum+i.items.filter(it=>it.staffId===s.id).reduce((a,it)=>a+it.price*it.qty,0),0);
+    return `<div class="card pad">
+      <div class="row" style="gap:12px"><div class="avatar" style="width:48px;height:48px;font-size:17px">${initials(s.name)}</div>
+        <div><div style="font-weight:700;font-size:15px">${esc(s.name)}</div><div class="muted">${esc(s.role||"")}</div></div></div>
+      <div style="margin-top:14px;display:flex;justify-content:space-between;font-size:13px">
+        <span class="muted">${t("revenue")}</span><b>${money(rev)}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px">
+        <span class="muted">${t("commission")}</span><b>${s.commission||0}%</b></div>
+      <div class="row" style="margin-top:14px"><button class="btn sm ghost" onclick="staffModal('${s.id}')">✏️ ${t("edit")}</button>
+        <button class="btn sm ghost" onclick="delStaff('${s.id}')">🗑️</button></div>
+    </div>`;}).join("")
+    :`<div class="card" style="grid-column:1/-1">${emptyBlock("👥",t("noTeam"))}</div>`}
+  </div>`;
+}
+function staffModal(id){
+  const s=id?byId(DB.staff,id):null;
+  openModal(id?t("edit"):t("add")+" "+t("staffMember"),`
+    <div class="form-grid">
+      <div class="field full"><label>${t("name")} *</label><input id="st_name" value="${s?esc(s.name):""}"></div>
+      <div class="field"><label>${t("role")}</label><input id="st_role" value="${s?esc(s.role||""):""}" placeholder="${t("phStaffRole")}"></div>
+      <div class="field"><label>${t("commission")}</label><input id="st_comm" type="number" min="0" max="100" value="${s?s.commission||0:0}"></div>
+      <div class="field"><label>${t("phone")}</label><input id="st_phone" value="${s?esc(s.phone||""):""}"></div>
+      <div class="field"><label>${t("email")}</label><input id="st_email" value="${s?esc(s.email||""):""}"></div>
+    </div>`,
+    `<button class="btn" onclick="closeModal()">${t("cancel")}</button>
+     <button class="btn primary" onclick="saveStaff('${id||""}')">${t("save")}</button>`);
+}
+function saveStaff(id){
+  const name=val("st_name"); if(!name) return toast(t("required"),"err");
+  const rec={id:id||uid("st"),name,role:val("st_role"),commission:parseFloat(val("st_comm"))||0,phone:val("st_phone"),email:val("st_email")};
+  if(id){const i=DB.staff.findIndex(x=>x.id===id);DB.staff[i]=rec;}else DB.staff.push(rec);
+  save();closeModal();render();toast(t("saved"),"ok");
+}
+function delStaff(id){ confirmDialog("",()=>{DB.staff=DB.staff.filter(s=>s.id!==id);save();render();toast(t("deleted"));}); }
+
+/* ============================================================
+   PRODUCTS / INVENTORY
+   ============================================================ */
+let prodSearch="";
+function vProducts(el){
+  let list=[...DB.products];
+  if(prodSearch){const q=prodSearch.toLowerCase();list=list.filter(p=>p.name.toLowerCase().includes(q)||(p.sku||"").toLowerCase().includes(q));}
+  el.innerHTML=`
+  <div class="section-head"><div class="spacer"></div>
+    <div class="searchbar">🔍<input placeholder="${t("search")}" value="${esc(prodSearch)}" oninput="prodSearch=this.value;debouncedProd()"></div>
+    <button class="btn primary" onclick="productModal()">＋ ${t("add")}</button></div>
+  <div class="card"><div class="t-wrap"><table><thead><tr>
+    <th>${t("name")}</th><th>${t("sku")}</th><th>${t("cost")}</th><th>${t("price")}</th><th>${t("stock")}</th><th style="text-align:end">${t("action")}</th>
+  </tr></thead><tbody>
+    ${list.length?list.map(p=>`<tr>
+      <td>${esc(p.name)}<div class="muted" style="font-size:12px">${esc(p.category||"")}</div></td>
+      <td>${esc(p.sku||"—")}</td><td>${money(p.cost||0)}</td><td><b>${money(p.price)}</b></td>
+      <td>${p.stock<=(p.lowStock||5)?`<span class="badge b-red">${p.stock} ⚠</span>`:`<span class="badge b-green">${p.stock}</span>`}</td>
+      <td style="text-align:end"><button class="btn sm ghost" onclick="productModal('${p.id}')">✏️</button>
+        <button class="btn sm ghost" onclick="delProduct('${p.id}')">🗑️</button></td></tr>`).join("")
+      :`<tr><td colspan="6">${emptyBlock("📦",t("noProducts"))}</td></tr>`}
+  </tbody></table></div></div>`;
+}
+let _pdt; function debouncedProd(){ clearTimeout(_pdt); _pdt=setTimeout(render,180); }
+function productModal(id){
+  const p=id?byId(DB.products,id):null;
+  openModal(id?t("edit"):t("add")+" "+t("products"),`
+    <div class="form-grid">
+      <div class="field full"><label>${t("name")} *</label><input id="p_name" value="${p?esc(p.name):""}"></div>
+      <div class="field"><label>${t("category")}</label><input id="p_cat" value="${p?esc(p.category||""):""}" placeholder="${t("phProdCat")}"></div>
+      <div class="field"><label>${t("sku")}</label><input id="p_sku" value="${p?esc(p.sku||""):""}"></div>
+      <div class="field"><label>${t("cost")}</label><input id="p_cost" type="number" min="0" step="0.01" value="${p?p.cost||"":""}"></div>
+      <div class="field"><label>${t("price")} *</label><input id="p_price" type="number" min="0" step="0.01" value="${p?p.price:""}"></div>
+      <div class="field"><label>${t("stock")}</label><input id="p_stock" type="number" min="0" value="${p?p.stock:0}"></div>
+      <div class="field"><label>${t("lowStockAlert")}</label><input id="p_low" type="number" min="0" value="${p?p.lowStock||5:5}"></div>
+    </div>`,
+    `<button class="btn" onclick="closeModal()">${t("cancel")}</button>
+     <button class="btn primary" onclick="saveProduct('${id||""}')">${t("save")}</button>`);
+}
+function saveProduct(id){
+  const name=val("p_name"),price=parseFloat(val("p_price"));
+  if(!name||isNaN(price)) return toast(t("required"),"err");
+  const rec={id:id||uid("pr"),name,category:val("p_cat"),sku:val("p_sku"),cost:parseFloat(val("p_cost"))||0,
+    price,stock:parseInt(val("p_stock"))||0,lowStock:parseInt(val("p_low"))||5};
+  if(id){const i=DB.products.findIndex(x=>x.id===id);DB.products[i]=rec;}else DB.products.push(rec);
+  save();closeModal();render();toast(t("saved"),"ok");
+}
+function delProduct(id){ confirmDialog("",()=>{DB.products=DB.products.filter(p=>p.id!==id);save();render();toast(t("deleted"));}); }
+
+/* ============================================================
+   INVOICES / POS
+   ============================================================ */
+let invFilter="all";
+function vInvoices(el){
+  let list=[...DB.invoices].sort((a,b)=>(b.date+b.no).localeCompare(a.date+a.no));
+  if(invFilter!=="all") list=list.filter(i=>i.status===invFilter);
+  const f=(k,l)=>`<button class="pill ${invFilter===k?'active':''}" onclick="invFilter='${k}';render()">${l}</button>`;
+  el.innerHTML=`
+  <div class="section-head"><div class="row">${f("all",t("all"))}${f("paid",t("paid"))}${f("unpaid",t("unpaid"))}</div>
+    <div class="spacer"></div><button class="btn primary" onclick="invoiceModal()">＋ ${t("newInvoice")}</button></div>
+  <div class="card"><div class="t-wrap"><table><thead><tr>
+    <th>${t("invoiceNo")}</th><th>${t("client")}</th><th>${t("date")}</th><th>${t("total")}</th><th>${t("status")}</th><th style="text-align:end">${t("action")}</th>
+  </tr></thead><tbody>
+    ${list.length?list.map(i=>{const c=byId(DB.clients,i.clientId);return `<tr>
+      <td><b>#${esc(i.no)}</b></td>
+      <td>${esc(c?c.name:t("walkinCustomer"))}</td>
+      <td>${fmtDate(i.date)}</td><td><b>${money(i.total)}</b></td>
+      <td>${i.status==="paid"?`<span class="badge b-green">${t("paid")}</span>`:`<span class="badge b-orange">${t("unpaid")}</span>`}</td>
+      <td style="text-align:end"><div class="row" style="justify-content:flex-end;gap:6px">
+        ${i.status!=="paid"?`<button class="btn sm success" onclick="markPaid('${i.id}')">${t("markPaid")}</button>`:""}
+        <button class="btn sm ghost" onclick="viewInvoice('${i.id}')">👁️</button>
+        <button class="btn sm ghost" onclick="delInvoice('${i.id}')">🗑️</button></div></td></tr>`;}).join("")
+      :`<tr><td colspan="6">${emptyBlock("💳",t("noSalesYet"))}</td></tr>`}
+  </tbody></table></div></div>`;
+}
+
+let cart=[], posRedeem=null, posPromo=null;
+function invoiceModal(id,preset){
+  const inv=id?byId(DB.invoices,id):null;
+  posRedeem=null; posPromo=null;
+  cart = inv?JSON.parse(JSON.stringify(inv.items)):[];
+  if(preset&&preset.serviceId){const s=byId(DB.services,preset.serviceId);if(s)cart.push({type:"service",refId:s.id,name:s.name,price:s.price,qty:1,staffId:preset.staffId||""});}
+  const clientOpts=`<option value="">${t("walkin")}</option>`+DB.clients.map(c=>`<option value="${c.id}" ${((inv&&inv.clientId===c.id)||(preset&&preset.clientId===c.id))?"selected":""}>${esc(c.name)}</option>`).join("");
+  openModal(id?t("invoiceNo")+" #"+inv.no:t("createInvoice"),`
+    <div class="form-grid">
+      <div class="field"><label>${t("client")}</label><select id="i_client" onchange="renderLoyalty()">${clientOpts}</select></div>
+      <div class="field"><label>${t("date")}</label><input type="date" id="i_date" value="${inv?inv.date:todayISO()}"></div>
+    </div>
+    <div class="section-head" style="margin-top:6px"><h2 style="font-size:14px">${t("items")}</h2><div class="spacer"></div>
+      <button class="btn sm" onclick="cartAdd('service')">＋ ${t("service")}</button>
+      <button class="btn sm" onclick="cartAdd('product')">＋ ${t("products")}</button></div>
+    <div class="t-wrap"><table class="li-table"><thead><tr><th>${t("item")}</th><th style="width:70px">${t("quantity")}</th><th style="width:110px">${t("price")}</th><th style="width:130px">${t("staffMember")}</th><th style="width:90px">${t("amount")}</th><th></th></tr></thead>
+      <tbody id="cartBody"></tbody></table></div>
+    ${(DB.promos||[]).length?`<div class="inline-in" style="margin-top:12px"><input id="i_promo" placeholder="${t("promoCode")}" style="text-transform:uppercase;max-width:200px"><button class="btn" onclick="applyPromo()">${t("apply")}</button></div>`:""}
+    <div class="form-grid" style="margin-top:14px">
+      <div class="field"><label>${t("discount")} (${DB.settings.currencySymbol})</label><input type="number" id="i_disc" min="0" step="0.01" value="${inv?inv.discount||0:0}" oninput="renderCartTotals()"></div>
+      ${DB.settings.tipEnabled?`<div class="field"><label>${t("tip")} (${DB.settings.currencySymbol})</label><input type="number" id="i_tip" min="0" step="0.01" value="${inv?inv.tip||0:0}" oninput="renderCartTotals()"></div>`:""}
+      <div class="field ${DB.settings.tipEnabled?'full':''}"><label>${t("paymentMethod")}</label><select id="i_pay">
+        <option value="cash">${t("cash")}</option><option value="card" ${inv&&inv.payment==="card"?"selected":""}>${t("card")}</option>
+        <option value="online" ${inv&&inv.payment==="online"?"selected":""}>${t("online")}</option></select></div>
+    </div>
+    <div id="loyaltyBox"></div>
+    <div class="card pad" style="background:var(--surface-2);margin-top:6px" id="totalsBox"></div>`,
+    `<button class="btn" onclick="closeModal()">${t("cancel")}</button>
+     <button class="btn" onclick="saveInvoice('${id||""}',false)">${t("save")} (${t("unpaid")})</button>
+     <button class="btn success" onclick="saveInvoice('${id||""}',true)">💵 ${t("checkout")}</button>`,{lg:true});
+  renderCart(); renderLoyalty();
+}
+function renderLoyalty(){
+  const box=document.getElementById("loyaltyBox"); if(!box) return;
+  if(!DB.settings.loyaltyEnabled){ box.innerHTML=""; return; }
+  const cid=val("i_client"), c=cid?byId(DB.clients,cid):null;
+  if(!c||!(c.points>0)){ box.innerHTML=""; return; }
+  const worth=c.points*(DB.settings.loyaltyRedeemValue||0);
+  box.innerHTML=`<div class="card pad" style="background:var(--primary-soft);margin-top:8px;display:flex;align-items:center;gap:10px">
+    <div>⭐ <b>${c.points}</b> ${t("points")} — ${t("worth")} ${money(worth)}</div><div class="spacer"></div>
+    ${posRedeem?`<span class="badge b-green">✓</span>`:`<button class="btn sm" onclick="redeemPointsPOS('${c.id}')">${t("redeemPoints")}</button>`}</div>`;
+}
+function redeemPointsPOS(cid){
+  const c=byId(DB.clients,cid); if(!c) return;
+  const {sub}=invTotals();
+  const use=Math.min(c.points*(DB.settings.loyaltyRedeemValue||0), sub);
+  const disc=document.getElementById("i_disc"); if(disc) disc.value=(Math.round(((parseFloat(disc.value)||0)+use)*100)/100);
+  posRedeem={cid:c.id,amount:use};
+  renderCartTotals(); renderLoyalty();
+}
+function cartAdd(type){
+  if(type==="service"&&!DB.services.length) return toast(t("tAddSvcFirst"),"err");
+  if(type==="product"&&!DB.products.length) return toast(t("tAddProdFirst"),"err");
+  const src=type==="service"?DB.services[0]:DB.products[0];
+  cart.push({type,refId:src.id,name:src.name,price:src.price,qty:1,staffId:""});
+  renderCart();
+}
+function renderCart(){
+  const body=document.getElementById("cartBody"); if(!body) return;
+  const staffOpts=v=>`<option value="">—</option>`+DB.staff.map(s=>`<option value="${s.id}" ${v===s.id?"selected":""}>${esc(s.name)}</option>`).join("");
+  body.innerHTML=cart.map((it,idx)=>{
+    const src=it.type==="service"?DB.services:DB.products;
+    const opts=src.map(x=>`<option value="${x.id}" ${x.id===it.refId?"selected":""}>${esc(x.name)} — ${money(x.price)}</option>`).join("");
+    return `<tr>
+      <td><select onchange="cartSetRef(${idx},this.value,'${it.type}')">${opts}</select></td>
+      <td><input type="number" min="1" value="${it.qty}" onchange="cart[${idx}].qty=Math.max(1,parseInt(this.value)||1);renderCart()"></td>
+      <td><input type="number" min="0" step="0.01" value="${it.price}" onchange="cart[${idx}].price=parseFloat(this.value)||0;renderCart()"></td>
+      <td><select onchange="cart[${idx}].staffId=this.value">${staffOpts(it.staffId)}</select></td>
+      <td><b>${money(it.price*it.qty)}</b></td>
+      <td><button class="btn sm ghost" onclick="cart.splice(${idx},1);renderCart()">✕</button></td></tr>`;
+  }).join("")||`<tr><td colspan="6" class="muted" style="text-align:center;padding:16px">${t("noItems")}</td></tr>`;
+  renderCartTotals();
+}
+function cartSetRef(idx,refId,type){
+  const src=type==="service"?byId(DB.services,refId):byId(DB.products,refId);
+  if(src){cart[idx].refId=refId;cart[idx].name=src.name;cart[idx].price=src.price;} renderCart();
+}
+function invTotals(){
+  const sub=cart.reduce((s,it)=>s+it.price*it.qty,0);
+  const disc=parseFloat((document.getElementById("i_disc")||{}).value)||0;
+  const tip=parseFloat((document.getElementById("i_tip")||{}).value)||0;
+  const taxable=Math.max(0,sub-disc);
+  const tax=taxable*(DB.settings.taxRate||0)/100;
+  return {sub,disc,tip,tax,total:taxable+tax+tip};
+}
+function renderCartTotals(){
+  const box=document.getElementById("totalsBox"); if(!box) return;
+  const {sub,disc,tip,tax,total}=invTotals();
+  box.innerHTML=`
+    <div class="inv-tot"><span>${t("subtotal")}</span><span>${money(sub)}</span></div>
+    ${disc?`<div class="inv-tot"><span>${t("discount")}</span><span>-${money(disc)}</span></div>`:""}
+    <div class="inv-tot"><span>${DB.settings.taxLabel} (${DB.settings.taxRate||0}%)</span><span>${money(tax)}</span></div>
+    ${tip?`<div class="inv-tot"><span>${t("tip")}</span><span>${money(tip)}</span></div>`:""}
+    <div class="inv-tot grand"><span>${t("total")}</span><span>${money(total)}</span></div>`;
+}
+function saveInvoice(id,paid){
+  if(!cart.length) return toast(t("tAddItemFirst"),"err");
+  const {sub,disc,tip,tax,total}=invTotals();
+  const cid=val("i_client");
+  const existing=id?byId(DB.invoices,id):null;
+  const no=existing?existing.no:String(DB.settings.invoiceCounter++);
+  const rec={id:id||uid("inv"),no,clientId:cid,
+    date:val("i_date"),items:JSON.parse(JSON.stringify(cart)),discount:disc,subtotal:sub,tax,tip,total,
+    payment:val("i_pay"),status:paid?"paid":(existing?existing.status:"unpaid")};
+  if(paid&&(!existing||existing.status!=="paid")){
+    rec.items.forEach(it=>{ if(it.type==="product"){const p=byId(DB.products,it.refId); if(p)p.stock=Math.max(0,p.stock-it.qty);} });
+    if(DB.settings.loyaltyEnabled&&cid){ const c=byId(DB.clients,cid);
+      if(c){ if(posRedeem&&posRedeem.cid===cid){ const used=Math.round(posRedeem.amount/(DB.settings.loyaltyRedeemValue||1)); c.points=Math.max(0,(c.points||0)-used); }
+        c.points=(c.points||0)+Math.round(Math.max(0,sub-disc)*(DB.settings.loyaltyEarnRate||0)); } }
+    if(posPromo){ const pm=byId(DB.promos,posPromo.id); if(pm) pm.uses=(pm.uses||0)+1; }
+  }
+  if(id){const i=DB.invoices.findIndex(x=>x.id===id);DB.invoices[i]=rec;}else DB.invoices.push(rec);
+  save();closeModal();render();toast(t("saved"),"ok");
+}
+function markPaid(id){ const i=byId(DB.invoices,id); if(i){i.status="paid";
+  i.items.forEach(it=>{if(it.type==="product"){const p=byId(DB.products,it.refId);if(p)p.stock=Math.max(0,p.stock-it.qty);}});
+  save();render();toast(t("saved"),"ok");} }
+function delInvoice(id){ confirmDialog("",()=>{DB.invoices=DB.invoices.filter(i=>i.id!==id);save();render();toast(t("deleted"));}); }
+
+function invoiceHTML(inv){
+  const c=byId(DB.clients,inv.clientId); const s=DB.settings;
+  return `<div class="invoice-print" id="invPrint" dir="${DB.settings.lang==="ar"?"rtl":"ltr"}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div style="display:flex;gap:12px;align-items:center">${s.logo?`<img src="${s.logo}" style="width:52px;height:52px;border-radius:12px">`:""}
+        <div><h2 style="margin:0">${esc(s.salonName)}</h2>
+        <div style="color:#6b7189;font-size:12px;margin-top:4px">${esc(s.address||"")}<br>${esc(s.phone||"")} ${s.email?" • "+esc(s.email):""}</div></div></div>
+      <div style="text-align:end"><div style="font-size:20px;font-weight:800">${t("invoiceUpper")}</div>
+        <div style="color:#6b7189">#${esc(inv.no)}</div><div style="color:#6b7189;font-size:12px">${fmtDate(inv.date)}</div></div>
+    </div>
+    <div style="margin-bottom:14px"><b>${t("billTo")}:</b> ${esc(c?c.name:t("walkinCustomer"))} ${c&&c.phone?" • "+esc(c.phone):""}</div>
+    <table style="width:100%;border-collapse:collapse"><thead><tr>
+      <th style="text-align:start;border-bottom:1px solid #e3e5ee;padding:8px">${t("item")}</th>
+      <th style="text-align:center;border-bottom:1px solid #e3e5ee;padding:8px">${t("quantity")}</th>
+      <th style="text-align:end;border-bottom:1px solid #e3e5ee;padding:8px">${t("price")}</th>
+      <th style="text-align:end;border-bottom:1px solid #e3e5ee;padding:8px">${t("amount")}</th></tr></thead><tbody>
+      ${inv.items.map(it=>`<tr>
+        <td style="padding:8px;border-bottom:1px solid #f0f1f6">${esc(it.name)}</td>
+        <td style="padding:8px;text-align:center;border-bottom:1px solid #f0f1f6">${it.qty}</td>
+        <td style="padding:8px;text-align:end;border-bottom:1px solid #f0f1f6">${money(it.price)}</td>
+        <td style="padding:8px;text-align:end;border-bottom:1px solid #f0f1f6">${money(it.price*it.qty)}</td></tr>`).join("")}
+    </tbody></table>
+    <div style="max-width:280px;margin-inline-start:auto;margin-top:16px">
+      <div class="inv-tot"><span>${t("subtotal")}</span><span>${money(inv.subtotal)}</span></div>
+      ${inv.discount?`<div class="inv-tot"><span>${t("discount")}</span><span>-${money(inv.discount)}</span></div>`:""}
+      <div class="inv-tot"><span>${esc(s.taxLabel)} (${s.taxRate}%)</span><span>${money(inv.tax)}</span></div>
+      ${inv.tip?`<div class="inv-tot"><span>${t("tip")}</span><span>${money(inv.tip)}</span></div>`:""}
+      <div class="inv-tot grand"><span>${t("total")}</span><span>${money(inv.total)}</span></div>
+    </div>
+    <div style="text-align:center;color:#6b7189;font-size:12px;margin-top:24px">${t("thankYou")} ${esc(s.salonName)}! ${inv.status==="paid"?"• "+t("paidStamp"):""}</div>
+  </div>`;
+}
+function payPanelHTML(inv){
+  const s=DB.settings;
+  if(!s.payEnabled || !s.payLink || inv.status==="paid") return "";
+  const link=s.payLink;
+  const qr="https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=6&data="+encodeURIComponent(link);
+  return `<div class="card pad" style="margin-top:14px;background:var(--surface-2)">
+    <div class="section-head"><h2 style="font-size:14px">💳 ${t("payments")}</h2><div class="spacer"></div><b>${money(inv.total)}</b></div>
+    <div class="row" style="align-items:center;gap:16px">
+      <img src="${qr}" alt="QR" style="width:120px;height:120px;border-radius:8px;background:#fff;padding:6px" onerror="this.style.display='none'">
+      <div style="flex:1;min-width:180px">
+        <div class="muted" style="font-size:12px;margin-bottom:8px">${t("scanToPay")}</div>
+        <div class="row">
+          <a class="btn primary" href="${esc(link)}" target="_blank" rel="noopener">💳 ${t("payNow")}</a>
+          <button class="btn" onclick="copyPay()">${t("copyPayLink")}</button>
+          ${s.payCheckoutUrl?`<button class="btn success" onclick="cardCheckout('${inv.id}')">💳 ${t("cardCheckout")}</button>`:""}
+        </div>
+      </div>
+    </div>
+    <input type="hidden" id="_paylink" value="${esc(link)}">
+  </div>`;
+}
+function copyPay(){ const e=document.getElementById("_paylink"); const v=e?e.value:(DB.settings.payLink||""); try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(v); }catch(err){} toast(t("linkCopied"),"ok"); }
+function cardCheckout(id){
+  const inv=byId(DB.invoices,id), url=DB.settings.payCheckoutUrl; if(!inv||!url) return;
+  toast("…","ok");
+  fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({amount:Math.round(inv.total*100),currency:(DB.settings.currency||"USD").toLowerCase(),label:t("invoiceNo")+" "+inv.no,invoice:inv.no})})
+    .then(r=>r.json()).then(d=>{ if(d&&d.url) window.open(d.url,"_blank"); else toast("Checkout error","err"); })
+    .catch(()=>toast("Checkout error","err"));
+}
+function sendPayLink(id){ const inv=byId(DB.invoices,id); const c=inv?byId(DB.clients,inv.clientId):null; const s=DB.settings;
+  if(!c||(!digits(c.phone)&&!c.email)) return toast(t("noPhone"),"err");
+  sendVia(c,`${s.salonName}: ${t("payFor")} ${t("invoiceNo")} ${inv.no} — ${money(inv.total)}.\n${s.payLink}`); toast(t("tOpeningEmail"),"ok"); }
+function viewInvoice(id){
+  const inv=byId(DB.invoices,id); if(!inv) return;
+  const c=byId(DB.clients,inv.clientId);
+  const canSend=DB.settings.payEnabled&&DB.settings.payLink&&inv.status!=="paid"&&c&&(digits(c.phone)||c.email);
+  openModal(t("invoiceNo")+" #"+inv.no, invoiceHTML(inv)+payPanelHTML(inv),
+    `<button class="btn" onclick="closeModal()">${t("close")}</button>
+     ${c&&c.email?`<button class="btn" onclick="emailInvoice('${id}')">✉️ ${t("emailReceipt")}</button>`:""}
+     ${canSend?`<button class="btn" onclick="sendPayLink('${id}')">💬 ${t("sendPayLink")}</button>`:""}
+     ${inv.status!=="paid"?`<button class="btn success" onclick="markPaid('${id}');closeModal()">✓ ${t("markPaid")}</button>`:""}
+     <button class="btn primary" onclick="printInvoice()">🖨️ ${t("print")}</button>`,{lg:true});
+}
+function printInvoice(){
+  const html=document.getElementById("invPrint").outerHTML;
+  const w=window.open("","_blank");
+  w.document.write(`<html dir="${DB.settings.lang==="ar"?"rtl":"ltr"}"><head><title>Invoice</title><style>
+    body{font-family:-apple-system,Arial,sans-serif;padding:20px;color:#1c2030}
+    .inv-tot{display:flex;justify-content:space-between;padding:5px 0}
+    .inv-tot.grand{font-size:18px;font-weight:800;border-top:2px solid #1c2030;margin-top:6px;padding-top:10px}
+  </style></head><body>${html}</body></html>`);
+  w.document.close(); setTimeout(()=>{w.print();},250);
+}
+function emailInvoice(id){
+  const inv=byId(DB.invoices,id); const c=byId(DB.clients,inv.clientId); const s=DB.settings;
+  const subject=`${s.salonName} — ${t("invoiceUpper")} #${inv.no}`;
+  let body=`${c?c.name:""}\n\n${t("thankYou")} ${s.salonName}.\n\n${t("invoiceNo")} ${inv.no} — ${fmtDate(inv.date)}\n`;
+  body+="----------------------------------------\n";
+  inv.items.forEach(it=>{ body+=`${it.name}  x${it.qty}   ${money(it.price*it.qty)}\n`; });
+  body+="----------------------------------------\n";
+  body+=`${t("subtotal")}: ${money(inv.subtotal)}\n`;
+  if(inv.discount) body+=`${t("discount")}: -${money(inv.discount)}\n`;
+  body+=`${s.taxLabel} (${s.taxRate}%): ${money(inv.tax)}\n`;
+  body+=`${t("total")}: ${money(inv.total)}  (${inv.status==="paid"?t("paidStamp"):t("unpaid")})\n\n`;
+  body+=`${s.salonName}\n${s.phone||""}`;
+  window.location.href=`mailto:${encodeURIComponent(c?c.email:"")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  toast(t("tOpeningEmail"),"ok");
+}
+
+/* ============================================================
+   REPORTS
+   ============================================================ */
+function vReports(el){
+  const paid=DB.invoices.filter(i=>i.status==="paid");
+  const days=[]; for(let i=6;i>=0;i--) days.push(daysAgoISO(i));
+  const dayRev=days.map(d=>({d,v:paid.filter(i=>i.date===d).reduce((s,i)=>s+i.total,0)}));
+  const maxDay=Math.max(1,...dayRev.map(x=>x.v));
+  const svc={}; paid.forEach(i=>i.items.forEach(it=>{if(it.type==="service")svc[it.name]=(svc[it.name]||0)+it.price*it.qty;}));
+  const svcArr=Object.entries(svc).sort((a,b)=>b[1]-a[1]).slice(0,8); const maxSvc=Math.max(1,...svcArr.map(x=>x[1]));
+  const staffRev=DB.staff.map(s=>({name:s.name,v:paid.reduce((sum,i)=>sum+i.items.filter(it=>it.staffId===s.id).reduce((a,it)=>a+it.price*it.qty,0),0),comm:s.commission||0})).sort((a,b)=>b.v-a.v);
+  const maxStaff=Math.max(1,...staffRev.map(x=>x.v));
+  const totalRev=paid.reduce((s,i)=>s+i.total,0);
+  const totalTax=paid.reduce((s,i)=>s+i.tax,0);
+  const totalTips=paid.reduce((s,i)=>s+(i.tip||0),0);
+  const onlineCount=DB.appointments.filter(a=>a.source==="online").length;
+  el.innerHTML=`
+  <div class="grid kpis" style="margin-bottom:18px">
+    <div class="kpi"><div class="lbl">${t("revenue")} (${t("allTime")})</div><div class="val">${money(totalRev)}</div><div class="sub">${paid.length} ${t("paidInvoices")}</div></div>
+    <div class="kpi"><div class="lbl">${t("taxCollected")}</div><div class="val">${money(totalTax)}</div><div class="sub">${DB.settings.taxLabel}</div></div>
+    <div class="kpi"><div class="lbl">${t("avgTicket")}</div><div class="val">${money(paid.length?totalRev/paid.length:0)}</div><div class="sub">${t("perInvoice")}</div></div>
+    <div class="kpi"><div class="lbl">${t("tips")}</div><div class="val">${money(totalTips)}</div><div class="sub">${t("allTime")}</div></div>
+    <div class="kpi"><div class="lbl">${t("appointments")}</div><div class="val">${DB.appointments.filter(a=>a.status==="completed").length}</div><div class="sub">${t("completed")}</div></div>
+    <div class="kpi"><div class="lbl">${t("bookOnline")}</div><div class="val">${onlineCount}</div><div class="sub">${t("onlineBadge")}</div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+    <div class="card pad"><div class="section-head"><h2>${t("revenue")} — ${t("last7")}</h2></div>
+      <div style="display:flex;align-items:flex-end;gap:10px;height:180px;padding-top:10px">
+      ${dayRev.map(x=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
+        <div style="font-size:11px;font-weight:700">${x.v?money(x.v).replace(/\.00$/,""):""}</div>
+        <div style="width:100%;background:linear-gradient(180deg,var(--primary),#b18bff);border-radius:6px 6px 0 0;height:${Math.round(x.v/maxDay*130)+2}px"></div>
+        <div class="muted" style="font-size:11px">${new Date(x.d).toLocaleDateString(DB.settings.lang==="ar"?"ar-AE":"en-US",{weekday:"short"})}</div></div>`).join("")}
+      </div></div>
+    <div class="card pad"><div class="section-head"><h2>${t("byService")}</h2></div>
+      ${svcArr.length?svcArr.map(([n,v])=>`<div class="bar-row"><div class="name" title="${esc(n)}">${esc(n)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxSvc*100)}%"></div></div>
+        <div class="bar-val">${money(v)}</div></div>`).join(""):emptyBlock("📈",t("noData"))}</div>
+  </div>
+  <div class="card pad" style="margin-top:16px"><div class="section-head"><h2>${t("topStaff")}</h2></div>
+    ${staffRev.length?`<div class="t-wrap"><table><thead><tr><th>${t("staffMember")}</th><th>${t("revenue")}</th><th>${t("commission")}</th><th>${t("estCommission")}</th><th style="width:35%"></th></tr></thead><tbody>
+    ${staffRev.map(s=>`<tr><td><div class="row" style="gap:9px"><div class="avatar">${initials(s.name)}</div>${esc(s.name)}</div></td>
+      <td><b>${money(s.v)}</b></td><td>${s.comm}%</td><td>${money(s.v*s.comm/100)}</td>
+      <td><div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.v/maxStaff*100)}%"></div></div></td></tr>`).join("")}
+    </tbody></table></div>`:emptyBlock("👥",t("noTeam"))}
+  </div>`;
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+const CURRENCIES={USD:"$",AED:"د.إ",SAR:"﷼",EUR:"€",GBP:"£",INR:"₹",CAD:"$",AUD:"$"};
+function vSettings(el){
+  const s=DB.settings;
+  const curOpts=Object.keys(CURRENCIES).map(c=>`<option value="${c}" ${s.currency===c?"selected":""}>${c} (${CURRENCIES[c]})</option>`).join("");
+  el.innerHTML=`
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+    <div class="card pad">
+      <div class="section-head"><h2>${t("salonProfile")}</h2></div>
+      <div class="field"><label>${t("salonName")}</label><input id="set_name" value="${esc(s.salonName)}"></div>
+      <div class="field"><label>${t("logo")}</label>
+        <div class="row"><div class="logo" style="width:44px;height:44px;border-radius:10px;background:var(--primary-soft);display:flex;align-items:center;justify-content:center;overflow:hidden">${s.logo?`<img src="${s.logo}" style="width:100%;height:100%;object-fit:cover">`:"🏷️"}</div>
+        <input type="file" accept="image/*" id="set_logo" onchange="uploadLogo(this)" style="flex:1"></div></div>
+      <div class="form-grid">
+        <div class="field"><label>${t("phone")}</label><input id="set_phone" value="${esc(s.phone||"")}"></div>
+        <div class="field"><label>${t("email")}</label><input id="set_email" value="${esc(s.email||"")}"></div>
+      </div>
+      <div class="field"><label>${t("address")}</label><textarea id="set_addr">${esc(s.address||"")}</textarea></div>
+    </div>
+    <div class="card pad">
+      <div class="section-head"><h2>${t("regionCurrency")}</h2></div>
+      <div class="field"><label>${t("region")}</label>
+        <select id="set_region" onchange="regionPreset(this.value)">
+          <option value="US" ${s.region==="US"?"selected":""}>🇺🇸 ${t("us")}</option>
+          <option value="AE" ${s.region==="AE"?"selected":""}>🇦🇪 ${t("ae")}</option>
+          <option value="OTHER" ${s.region==="OTHER"?"selected":""}>🌐 ${t("other")}</option></select></div>
+      <div class="form-grid">
+        <div class="field"><label>${t("currency")}</label><select id="set_cur">${curOpts}</select></div>
+        <div class="field"><label>${t("taxRate")}</label><input id="set_tax" type="number" min="0" step="0.01" value="${s.taxRate}"></div>
+      </div>
+      <div class="field"><label>${t("taxLabelField")}</label><input id="set_taxlabel" value="${esc(s.taxLabel)}"></div>
+      <div class="form-grid">
+        <div class="field"><label>${t("language")}</label><select id="set_lang">
+          <option value="en" ${s.lang==="en"?"selected":""}>English</option>
+          <option value="ar" ${s.lang==="ar"?"selected":""}>العربية (Arabic)</option></select></div>
+        <div class="field"><label>${t("theme")}</label><select id="set_theme">
+          <option value="light" ${s.theme==="light"?"selected":""}>${t("light")}</option>
+          <option value="dark" ${s.theme==="dark"?"selected":""}>${t("dark")}</option></select></div>
+      </div>
+      <button class="btn primary" style="width:100%;justify-content:center" onclick="saveSettings()">${t("save")}</button>
+    </div>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>🌐 ${t("onlineBooking")}</h2></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;font-weight:600"><input type="checkbox" id="set_bookEnabled" style="width:auto" ${s.bookingEnabled?"checked":""}> ${t("enableBooking")}</label>
+    <div class="form-grid">
+      <div class="field"><label>${t("slotLength")}</label><input type="number" id="set_slot" min="5" step="5" value="${s.bookingSlotMinutes}"></div>
+      <div class="field"><label>${t("bookingIntro")}</label><input id="set_bookintro" value="${esc(s.bookingIntro||"")}"></div>
+    </div>
+    <label style="display:block;font-size:12.5px;font-weight:600;margin:6px 0 10px">${t("businessHours")}</label>
+    ${["sun","mon","tue","wed","thu","fri","sat"].map(d=>{const h=s.hours[d];return `<div class="row" style="gap:8px;margin-bottom:8px">
+      <div style="width:92px;font-weight:600">${t(d)}</div>
+      <label style="display:flex;align-items:center;gap:6px;width:auto;font-size:12px"><input type="checkbox" id="h_${d}_closed" style="width:auto" ${h.closed?"checked":""} onchange="document.getElementById('h_${d}_open').disabled=this.checked;document.getElementById('h_${d}_close').disabled=this.checked"> ${t("closedDay")}</label>
+      <input type="time" id="h_${d}_open" value="${h.open}" ${h.closed?"disabled":""} style="width:auto;flex:1">
+      <input type="time" id="h_${d}_close" value="${h.close}" ${h.closed?"disabled":""} style="width:auto;flex:1"></div>`;}).join("")}
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" onclick="saveBooking()">${t("save")}</button>
+      <div class="spacer"></div>
+      <button class="btn" onclick="copyBookingLink()">🔗 ${t("copyLink")}</button>
+      <button class="btn" onclick="location.hash='book'">👁️ ${t("previewBooking")}</button>
+    </div>
+    <p class="muted" style="font-size:12px;margin-top:10px">${t("bookingLinkHint")}<br><code style="word-break:break-all">${esc((location.href.split("#")[0])+"#book")}</code></p>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>💬 ${t("messaging")}</h2></div>
+    <div class="field"><label>${t("sendViaLbl")}</label><select id="set_channel">
+      <option value="whatsapp" ${s.notifyChannel==="whatsapp"?"selected":""}>${t("whatsapp")}</option>
+      <option value="sms" ${s.notifyChannel==="sms"?"selected":""}>${t("sms")}</option>
+      <option value="email" ${s.notifyChannel==="email"?"selected":""}>${t("emailCh")}</option></select></div>
+    <div class="field"><label>${t("confirmTpl")}</label><textarea id="tpl_confirm">${esc(s.templates.confirm[s.lang]||s.templates.confirm.en)}</textarea></div>
+    <div class="field"><label>${t("reminderTpl")}</label><textarea id="tpl_reminder">${esc(s.templates.reminder[s.lang]||s.templates.reminder.en)}</textarea></div>
+    <div class="field"><label>${t("reviewTpl")}</label><textarea id="tpl_review">${esc(s.templates.review[s.lang]||s.templates.review.en)}</textarea></div>
+    <p class="muted" style="font-size:12px;margin-bottom:12px">${t("placeholdersHint")}</p>
+    <button class="btn primary" onclick="saveMessaging()">${t("save")}</button>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>⭐ ${t("loyalty")} & ${t("tips")}</h2></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-weight:600"><input type="checkbox" id="set_loyEnabled" style="width:auto" ${s.loyaltyEnabled?"checked":""}> ${t("loyaltyEnable")}</label>
+    <div class="form-grid">
+      <div class="field"><label>${t("earnRate")}</label><input type="number" id="set_earn" min="0" step="0.1" value="${s.loyaltyEarnRate}"></div>
+      <div class="field"><label>${t("redeemValue")} (${s.currencySymbol})</label><input type="number" id="set_redeem" min="0" step="0.01" value="${s.loyaltyRedeemValue}"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;font-weight:600"><input type="checkbox" id="set_tipEnabled" style="width:auto" ${s.tipEnabled?"checked":""}> ${t("tip")} — ${t("checkout")}</label>
+    <button class="btn primary" onclick="saveLoyalty()">${t("save")}</button>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>🔐 ${t("cloudSecurity")}</h2></div>
+    <div class="field"><label>${t("staffPin")}</label>
+      <div class="inline-in"><input id="set_pin" type="password" inputmode="numeric" placeholder="${s.adminPin?"••••":"— "+t("locked")+" off —"}">
+        <button class="btn" onclick="savePin()">${t("setPin")}</button>
+        ${s.adminPin?`<button class="btn ghost" onclick="clearPin()">${t("clearPin")}</button>`:""}</div>
+      <div class="hint">${s.adminPin?"✅ "+t("locked"):""}</div></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:600"><input type="checkbox" id="set_cloudEnabled" style="width:auto" ${s.cloud.enabled?"checked":""}> ${t("cloudEnable")}</label>
+    <p class="muted" style="font-size:12px;margin-bottom:14px">${t("cloudHint")}</p>
+    <div class="field"><label>${t("supaUrl")}</label><input id="set_supaUrl" value="${esc(s.cloud.url||"")}" placeholder="https://xxxx.supabase.co"></div>
+    <div class="form-grid">
+      <div class="field"><label>${t("supaKey")}</label><input id="set_supaKey" value="${esc(s.cloud.key||"")}" placeholder="eyJhbGci…"></div>
+      <div class="field"><label>${t("salonIdLbl")}</label><input id="set_salonId" value="${esc(s.cloud.salonId||"")}" placeholder="my-salon"></div>
+    </div>
+    <div class="row"><button class="btn primary" onclick="saveCloud()">${t("save")}</button>
+      <button class="btn" onclick="cloudTest()">${t("testConn")}</button>
+      <span class="muted" id="cloudStatus" style="font-size:12px">${cloudOn()?t("cloudConnected"):t("cloudNot")}</span></div>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>💳 ${t("payments")}</h2></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:600"><input type="checkbox" id="set_payEnabled" style="width:auto" ${s.payEnabled?"checked":""}> ${t("enablePayments")}</label>
+    <p class="muted" style="font-size:12px;margin-bottom:14px">${t("payHint")}</p>
+    <div class="field"><label>${t("paymentLink")}</label><input id="set_payLink" value="${esc(s.payLink||"")}" placeholder="https://buy.stripe.com/…   or   https://tap.company/…"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:600"><input type="checkbox" id="set_depositEnabled" style="width:auto" ${s.depositEnabled?"checked":""}> ${t("depositEnable")}</label>
+    <div class="field" style="max-width:240px"><label>${t("depositPct")}</label><input type="number" id="set_depositPct" min="0" max="100" value="${s.depositPct}"></div>
+    <div class="field"><label>${t("checkoutUrlLabel")}</label><input id="set_payCheckoutUrl" value="${esc(s.payCheckoutUrl||"")}" placeholder="(optional) https://…functions…/create-checkout"></div>
+    <button class="btn primary" onclick="savePayments()">${t("save")}</button>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>🎁 ${t("promotions")}</h2></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:600"><input type="checkbox" id="set_referralsEnabled" style="width:auto" ${s.referralsEnabled?"checked":""}> ${t("enableReferrals")}</label>
+    <div class="field" style="max-width:240px"><label>${t("referralBonus")}</label><input type="number" id="set_referralBonus" min="0" value="${s.referralBonus}"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-weight:600"><input type="checkbox" id="set_homeService" style="width:auto" ${s.homeServiceEnabled?"checked":""}> ${t("homeServiceOffer")}</label>
+    <button class="btn primary" onclick="savePromoSettings()">${t("save")}</button>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+    <div class="section-head"><h2 style="font-size:14px">${t("promoCode")}</h2></div>
+    <div class="form-grid">
+      <div class="field"><label>${t("codeLabel")}</label><input id="pm_code" style="text-transform:uppercase" placeholder="WELCOME10"></div>
+      <div class="field"><label>${t("promoType")}</label><select id="pm_kind"><option value="percent">${t("pctOff")}</option><option value="amount">${t("amtOff")} (${s.currencySymbol})</option></select></div>
+    </div>
+    <div class="inline-in" style="margin-bottom:12px"><input type="number" id="pm_value" min="0" placeholder="10" style="max-width:150px"><button class="btn" onclick="addPromo()">＋ ${t("addCode")}</button></div>
+    ${(DB.promos||[]).length?`<div class="t-wrap"><table><tbody>${DB.promos.map(pm=>`<tr>
+      <td><b>${esc(pm.code)}</b></td><td>${pm.kind==="percent"?pm.value+"%":money(pm.value)}</td>
+      <td class="muted">${pm.uses||0} ${t("usesWord")}</td>
+      <td style="text-align:end"><button class="btn sm ghost" onclick="delPromo('${pm.id}')">🗑️</button></td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">${t("noData")}</p>`}
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>🤖 ${t("aiTitle")}</h2></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:600"><input type="checkbox" id="set_aiEnabled" style="width:auto" ${s.aiEnabled?"checked":""}> ${t("aiEnable")}</label>
+    <p class="muted" style="font-size:12px;margin-bottom:14px">Owner assistant + a customer concierge chatbot, powered by Claude. Needs a Claude API key and a small backend — full ~15-min setup in SETUP-AI.md.</p>
+    <div class="field"><label>${t("aiUrlLabel")}</label><input id="set_aiUrl" value="${esc(s.aiUrl||"")}" placeholder="https://…supabase.co/functions/v1/ai"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;font-weight:600"><input type="checkbox" id="set_aiConcierge" style="width:auto" ${s.aiConcierge?"checked":""}> ${t("aiConciergeToggle")}</label>
+    <div class="row"><button class="btn primary" onclick="saveAI()">${t("save")}</button>
+      <button class="btn" onclick="aiModal()">🤖 ${t("aiAsk")}</button></div>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <div class="section-head"><h2>${t("data")}</h2></div>
+    <p class="muted" style="margin-bottom:14px">${t("dataNote")}</p>
+    <div class="row">
+      <button class="btn" onclick="exportData()">⬇️ ${t("exportData")}</button>
+      <label class="btn" style="position:relative">⬆️ ${t("importData")}<input type="file" accept="application/json" onchange="importData(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
+      <button class="btn" onclick="emailBackup()">✉️ ${t("emailBackup")}</button>
+      <div class="spacer"></div>
+      <button class="btn" onclick="reloadDemoMenu()">🎬 ${t("loadDemo")}</button>
+      <button class="btn danger" onclick="resetAll()">🗑️ ${t("resetData")}</button>
+    </div>
+  </div>`;
+}
+function regionPreset(r){
+  if(r==="US"){document.getElementById("set_cur").value="USD";document.getElementById("set_tax").value="8.25";document.getElementById("set_taxlabel").value="Sales Tax";}
+  if(r==="AE"){document.getElementById("set_cur").value="AED";document.getElementById("set_tax").value="5";document.getElementById("set_taxlabel").value="VAT";}
+}
+function uploadLogo(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=e=>{DB.settings.logo=e.target.result;save();render();toast(t("tLogoUpdated"),"ok");}; r.readAsDataURL(f);
+}
+function saveSettings(){
+  const s=DB.settings;
+  s.salonName=val("set_name")||"SalonPro"; s.phone=val("set_phone"); s.email=val("set_email"); s.address=val("set_addr");
+  s.region=val("set_region"); s.currency=val("set_cur"); s.currencySymbol=CURRENCIES[s.currency]||"$";
+  s.taxRate=parseFloat(val("set_tax"))||0; s.taxLabel=val("set_taxlabel")||"Tax";
+  s.lang=val("set_lang"); s.theme=val("set_theme");
+  save();render();toast(t("saved"),"ok");
+}
+function getChecked(id){ const e=document.getElementById(id); return e?e.checked:false; }
+function saveBooking(){
+  const s=DB.settings;
+  s.bookingEnabled=getChecked("set_bookEnabled");
+  s.bookingSlotMinutes=parseInt(val("set_slot"))||30;
+  s.bookingIntro=val("set_bookintro");
+  ["sun","mon","tue","wed","thu","fri","sat"].forEach(d=>{
+    s.hours[d]={closed:getChecked("h_"+d+"_closed"),open:val("h_"+d+"_open")||"10:00",close:val("h_"+d+"_close")||"20:00"};
+  });
+  save();render();toast(t("saved"),"ok");
+}
+function saveMessaging(){
+  const s=DB.settings, lang=s.lang;
+  s.notifyChannel=val("set_channel");
+  s.templates.confirm[lang]=document.getElementById("tpl_confirm").value;
+  s.templates.reminder[lang]=document.getElementById("tpl_reminder").value;
+  s.templates.review[lang]=document.getElementById("tpl_review").value;
+  save();render();toast(t("saved"),"ok");
+}
+function saveLoyalty(){
+  const s=DB.settings;
+  s.loyaltyEnabled=getChecked("set_loyEnabled");
+  s.loyaltyEarnRate=parseFloat(val("set_earn"))||0;
+  s.loyaltyRedeemValue=parseFloat(val("set_redeem"))||0;
+  s.tipEnabled=getChecked("set_tipEnabled");
+  save();render();toast(t("saved"),"ok");
+}
+function copyBookingLink(){
+  const url=location.href.split("#")[0]+"#book";
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url); }catch(e){}
+  toast(t("linkCopied"),"ok");
+}
+function savePayments(){
+  const s=DB.settings;
+  s.payEnabled=getChecked("set_payEnabled");
+  s.payLink=val("set_payLink");
+  s.depositEnabled=getChecked("set_depositEnabled");
+  s.depositPct=parseFloat(val("set_depositPct"))||0;
+  s.payCheckoutUrl=val("set_payCheckoutUrl");
+  save();render();toast(t("paymentSaved"),"ok");
+}
+function savePromoSettings(){
+  const s=DB.settings;
+  s.referralsEnabled=getChecked("set_referralsEnabled");
+  s.referralBonus=parseFloat(val("set_referralBonus"))||0;
+  s.homeServiceEnabled=getChecked("set_homeService");
+  save();render();toast(t("saved"),"ok");
+}
+function saveAI(){
+  const s=DB.settings;
+  s.aiEnabled=getChecked("set_aiEnabled");
+  s.aiUrl=val("set_aiUrl");
+  s.aiConcierge=getChecked("set_aiConcierge");
+  save();render();toast(t("aiSaved"),"ok");
+}
+function addPromo(){
+  const code=val("pm_code").toUpperCase(), value=parseFloat(val("pm_value"));
+  if(!code||isNaN(value)) return toast(t("required"),"err");
+  DB.promos.push({id:uid("pm"),code,kind:val("pm_kind"),value,uses:0});
+  save();render();toast(t("saved"),"ok");
+}
+function delPromo(id){ DB.promos=DB.promos.filter(p=>p.id!==id); save();render();toast(t("deleted")); }
+function applyPromo(){
+  const code=val("i_promo").toUpperCase(), pm=(DB.promos||[]).find(p=>p.code.toUpperCase()===code);
+  if(!pm) return toast(t("promoInvalid"),"err");
+  const {sub}=invTotals();
+  const disc=pm.kind==="percent"?Math.round(sub*pm.value)/100:pm.value;
+  const d=document.getElementById("i_disc"); if(d) d.value=Math.min(disc,sub);
+  posPromo=pm; renderCartTotals(); toast(t("promoApplied"),"ok");
+}
+function savePin(){ const p=val("set_pin"); if(!p) return toast(t("required"),"err"); DB.settings.adminPin=p; save(); render(); toast(t("pinSet"),"ok"); }
+function clearPin(){ DB.settings.adminPin=""; save(); render(); toast(t("pinCleared"),"ok"); }
+function saveCloud(){
+  DB.settings.cloud={enabled:getChecked("set_cloudEnabled"),url:val("set_supaUrl"),key:val("set_supaKey"),salonId:val("set_salonId")};
+  save(); render(); toast(t("cloudSaved"),"ok");
+  if(DB.settings.cloud.enabled && window.SalonProCloud && SalonProCloud.onBoot){ try{ SalonProCloud.onBoot(); }catch(e){} }
+}
+function cloudTest(){
+  const st=document.getElementById("cloudStatus");
+  if(window.SalonProCloud && SalonProCloud.init){
+    SalonProCloud.init(DB.settings.cloud).then(ok=>{ if(st) st.textContent=ok?t("cloudConnected"):t("cloudNot"); toast(ok?t("cloudConnected"):t("cloudNot"),ok?"ok":"err"); })
+      .catch(()=>{ if(st) st.textContent=t("cloudNot"); toast(t("cloudNot"),"err"); });
+  } else { if(st) st.textContent=t("cloudNot"); toast(t("cloudNot"),"err"); }
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`${(DB.settings.salonName||"salon").replace(/\s+/g,"_")}_backup_${todayISO()}.json`;
+  a.click(); toast(t("tBackupDl"),"ok");
+}
+function importData(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=e=>{ try{ const d=JSON.parse(e.target.result);
+    if(!d.settings) throw new Error("bad"); DB=Object.assign(defaultDB(),d); save(); render(); toast(t("tBackupRestored"),"ok");
+  }catch(err){ toast(t("tInvalidBackup"),"err"); } }; r.readAsText(f);
+}
+function emailBackup(){
+  const subject=`SalonPro backup — ${DB.settings.salonName} — ${todayISO()}`;
+  const body=`Attach the exported .json backup file (from the "Export / Backup" button) to this email to keep it safe.\n\nTo restore: open SalonPro → Settings → Restore Backup.`;
+  window.location.href=`mailto:${encodeURIComponent(DB.settings.email||"")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+function resetAll(){ confirmDialog(t("resetConfirm"),()=>{
+  localStorage.removeItem(STORE_KEY); DB=defaultDB(); save(); render(); }); }
+function reloadDemoMenu(){
+  openModal(t("loadDemo"),`<p class="muted" style="margin-bottom:14px">${t("replaceNote")}</p>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="demo-card" onclick="applyDemo('us')"><div class="flag">🇺🇸</div><h4>Luxe Hair Studio</h4></div>
+      <div class="demo-card" onclick="applyDemo('ae')"><div class="flag">🇦🇪</div><h4>Royal Beauty Lounge</h4></div>
+      <div class="demo-card" onclick="applyDemo('spa')"><div class="flag">💆</div><h4>Serene Spa &amp; Nails</h4></div>
+      <div class="demo-card" onclick="applyDemo('empty')"><div class="flag">✨</div><h4>${t("startEmptyShort")}</h4></div>
+    </div>`,`<button class="btn" onclick="closeModal()">${t("cancel")}</button>`);
+}
+
+/* ---------- utils for forms ---------- */
+function val(id){ const e=document.getElementById(id); return e?e.value.trim():""; }
+
+/* ============================================================
+   DEMO DATA (richer, sales-ready)
+   ============================================================ */
+function applyDemo(kind){
+  closeModal();
+  if(kind==="empty"){ const lang=DB.settings.lang; DB=defaultDB(); DB.settings.lang=lang; DB.settings.setupDone=true; save(); render(); toast(t("tBlankReady"),"ok"); return; }
+  const lang=DB.settings.lang; DB=buildDemo(kind); DB.settings.lang=lang; DB.settings.setupDone=true; save(); render();
+  toast(t("tDemoLoaded"),"ok");
+}
+function buildDemo(kind){
+  const db=defaultDB();
+  const cfg={
+    us:{salonName:"Luxe Hair Studio",region:"US",currency:"USD",sym:"$",tax:8.25,taxLabel:"Sales Tax",
+        phone:"(212) 555-0142",email:"hello@luxehair.example",address:"58 Greene St, New York, NY 10012",logo:svgLogo("LH","#7c5cff","#b18bff")},
+    ae:{salonName:"Royal Beauty Lounge",region:"AE",currency:"AED",sym:"د.إ",tax:5,taxLabel:"VAT",
+        phone:"+971 4 555 0180",email:"care@royalbeauty.example",address:"Jumeirah Beach Rd, Dubai, UAE",logo:svgLogo("RB","#c9a227","#8a6d1a")},
+    spa:{salonName:"Serene Spa & Nails",region:"US",currency:"USD",sym:"$",tax:7,taxLabel:"Sales Tax",
+        phone:"(305) 555-0110",email:"book@serenespa.example",address:"120 Ocean Dr, Miami, FL 33139",logo:svgLogo("SS","#1fb673","#3ecf8e")},
+  }[kind];
+  Object.assign(db.settings,{salonName:cfg.salonName,region:cfg.region,currency:cfg.currency,currencySymbol:cfg.sym,
+    taxRate:cfg.tax,taxLabel:cfg.taxLabel,phone:cfg.phone,email:cfg.email,address:cfg.address,logo:cfg.logo,invoiceCounter:1024});
+  const staffSets={
+    us:[["Ava Thompson","Senior Stylist",40],["Marcus Lee","Colorist",35],["Priya Nair","Stylist",30],["Jordan Blake","Junior Stylist",25]],
+    ae:[["Layla Hassan","Senior Stylist",40],["Sara Khan","Beautician",35],["Fatima Ali","Nail Artist",30],["Huda Omar","Makeup Artist",38]],
+    spa:[["Elena Ruiz","Massage Therapist",45],["Chloe Park","Nail Technician",35],["Nina Duval","Esthetician",40],["Sofia Marin","Spa Therapist",40]],
+  }[kind];
+  db.staff=staffSets.map(([name,role,comm])=>({id:uid("st"),name,role,commission:comm,phone:"",email:""}));
+  const svcSets={
+    us:[["Women's Haircut","Hair",60,55],["Men's Haircut","Hair",30,35],["Kids Haircut","Hair",30,25],
+        ["Full Color","Color",120,140],["Highlights","Color",150,165],["Balayage","Color",180,220],
+        ["Blowout","Styling",45,45],["Updo / Event Style","Styling",60,85],
+        ["Keratin Treatment","Treatment",150,190],["Deep Conditioning","Treatment",30,35]],
+    ae:[["Ladies Haircut","Hair",60,150],["Gents Haircut","Hair",30,90],["Hair Color","Color",120,400],
+        ["Highlights","Color",150,500],["Moroccan Bath","Spa",90,250],["Bridal Makeup","Makeup",120,900],
+        ["Party Makeup","Makeup",60,350],["Manicure","Nails",45,90],["Gel Pedicure","Nails",60,140],
+        ["Hair Spa","Treatment",75,220]],
+    spa:[["Swedish Massage","Massage",60,90],["Deep Tissue Massage","Massage",60,110],["Hot Stone Massage","Massage",75,130],
+        ["Aromatherapy Massage","Massage",60,105],["Classic Facial","Facial",50,80],["Anti-Aging Facial","Facial",60,120],
+        ["Gel Manicure","Nails",45,45],["Spa Pedicure","Nails",55,60],["Body Scrub","Body",45,75],["Body Wrap","Body",60,95]],
+  }[kind];
+  db.services=svcSets.map(([name,category,duration,price])=>({id:uid("sv"),name,category,duration,price}));
+  const prodSets={
+    us:[["Argan Oil Serum","Retail","AO-100",12,28,18],["Shampoo (Salon)","Retail","SH-200",8,22,25],
+        ["Heat Protectant","Retail","HP-300",6,19,4],["Hair Mask","Retail","HM-400",9,26,14]],
+    ae:[["Argan Hair Oil","Retail","AR-01",30,80,20],["Keratin Shampoo","Retail","KS-02",25,70,15],
+        ["Nail Polish Set","Retail","NP-03",20,55,3],["Hair Serum","Retail","HS-04",28,75,12]],
+    spa:[["Essential Oil Kit","Retail","EO-11",18,45,12],["Body Lotion","Retail","BL-22",9,26,30],
+        ["Facial Serum","Retail","FS-33",22,58,5],["Bath Salts","Retail","BS-44",7,20,22]],
+  }[kind];
+  db.products=prodSets.map(([name,category,sku,cost,price,stock])=>({id:uid("pr"),name,category,sku,cost,price,stock,lowStock:5}));
+  const nameSets={
+    us:["Emily Carter","James Wilson","Sophia Martinez","Daniel Brown","Olivia Davis","Michael Chen","Grace Kim","Robert Taylor","Chloe Adams","William Scott","Ava Johnson","Lucas Green"],
+    ae:["Aisha Al Marri","Mohammed Rashid","Noora Saeed","Omar Farouk","Hessa Ahmed","Yousef Ali","Mariam Khalid","Khalid Hassan","Latifa Obaid","Sultan Nasser","Reem Salem","Abdullah Majid"],
+    spa:["Isabella Rossi","Lucas Meyer","Amara Okafor","Sofia Herrera","Ethan Clarke","Maya Patel","Diego Torres","Hannah Cohen","Zoe Bennett","Liam Foster","Nadia Rahman","Oscar Lindqvist"],
+  }[kind];
+  db.clients=nameSets.map((name,i)=>({id:uid("cl"),name,
+    phone:(cfg.region==="AE"?"+971 50 555 0":"(555) 01")+String(100+i).padStart(3,"0"),
+    email:name.toLowerCase().replace(/[^a-z]+/g,".")+"@example.com",notes:"",points:0,created:daysAgoISO(90-i*6)}));
+  const times=["09:30","11:00","12:30","14:00","15:30","17:00","18:30"];
+  let inv=1024;
+  // 16 past completed appointments spread across last 28 days -> each with a paid invoice
+  for(let i=0;i<16;i++){
+    const c=db.clients[i%db.clients.length];
+    const sv=db.services[(i*3)%db.services.length];
+    const st=db.staff[i%db.staff.length];
+    const date=daysAgoISO(1+Math.floor(i*27/15));
+    const time=times[i%times.length];
+    db.appointments.push({id:uid("appt"),clientId:c.id,serviceId:sv.id,staffId:st.id,date,time,status:"completed",source:"salon",reminded:true,notes:""});
+    const items=[{type:"service",refId:sv.id,name:sv.name,price:sv.price,qty:1,staffId:st.id}];
+    if(i%3===0){const p=db.products[i%db.products.length];items.push({type:"product",refId:p.id,name:p.name,price:p.price,qty:1,staffId:st.id});}
+    if(i%5===0){const sv2=db.services[(i*2+1)%db.services.length];items.push({type:"service",refId:sv2.id,name:sv2.name,price:sv2.price,qty:1,staffId:st.id});}
+    const sub=items.reduce((s,it)=>s+it.price*it.qty,0); const tax=sub*cfg.tax/100;
+    const tip=(i%3===0)?Math.round(sub*0.1):0;
+    db.invoices.push({id:uid("inv"),no:String(inv++),clientId:c.id,date,items,discount:0,
+      subtotal:sub,tax,tip,total:sub+tax+tip,payment:["cash","card","online"][i%3],status:"paid"});
+  }
+  // 8 upcoming appointments across next 12 days
+  for(let j=0;j<8;j++){
+    const c=db.clients[(j+4)%db.clients.length];
+    const sv=db.services[(j*2+1)%db.services.length];
+    const st=db.staff[j%db.staff.length];
+    db.appointments.push({id:uid("appt"),clientId:c.id,serviceId:sv.id,staffId:st.id,
+      date:daysFromISO(1+Math.floor(j*11/7)),time:times[j%times.length],
+      status:j%2===0?"confirmed":"booked",source:j%3===0?"online":"salon",reminded:false,notes:""});
+  }
+  // a couple walk-in sales today & yesterday to populate today's KPIs
+  for(let k=0;k<2;k++){
+    const sv=db.services[(k+2)%db.services.length]; const st=db.staff[k%db.staff.length];
+    const items=[{type:"service",refId:sv.id,name:sv.name,price:sv.price,qty:1,staffId:st.id}];
+    const sub=sv.price; const tax=sub*cfg.tax/100;
+    db.invoices.push({id:uid("inv"),no:String(inv++),clientId:db.clients[(k+5)%db.clients.length].id,
+      date:daysAgoISO(k),items,discount:0,subtotal:sub,tax,tip:0,total:sub+tax,payment:"card",status:"paid"});
+  }
+  // award loyalty points from paid history
+  db.invoices.filter(i=>i.status==="paid").forEach(i=>{ const c=byId(db.clients,i.clientId);
+    if(c) c.points=(c.points||0)+Math.round(Math.max(0,i.subtotal-(i.discount||0))*(db.settings.loyaltyEarnRate||0)); });
+  db.settings.invoiceCounter=inv;
+  return db;
+}
+
+
+/* ===== SalonPro Cloud module (baked in) ===== */
+/* ============================================================
+   SalonPro — Cloud module (Tier 2)
+   Optional. Add this ONE line just before </body> in SalonPro.html
+   when you host it with cloud sync:
+
+       <script src="salonpro-cloud.js"><\/script>
+
+   It loads the Supabase client from a CDN and implements the
+   window.SalonProCloud interface that SalonPro.html calls into.
+   The main app stays 100% standalone if this file is absent.
+
+   Setup steps are in SETUP-CLOUD.md.
+   ============================================================ */
+(function () {
+  "use strict";
+  var CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+  var sb = null, pushTimer = null, subscribed = false;
+
+  function bridge()   { return window.SalonPro || {}; }
+  function cfg()      { var s = bridge().settings ? bridge().settings() : {}; return (s && s.cloud) || {}; }
+  function isPublic() { return location.hash.slice(1) === "book"; }
+
+  function loadLib() {
+    return new Promise(function (res, rej) {
+      if (window.supabase) return res();
+      var s = document.createElement("script");
+      s.src = CDN; s.onload = function(){ res(); }; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  function client() {
+    return loadLib().then(function () {
+      var c = cfg();
+      if (!sb && c.url && c.key) sb = window.supabase.createClient(c.url, c.key);
+      return sb;
+    });
+  }
+
+  /* ---- connection test (used by the "Test connection" button) ---- */
+  function init() {
+    return client().then(function (c) {
+      if (!c) return false;
+      return c.from("booking_config").select("salon_id").limit(1).then(function (r) {
+        return !r.error || r.error.code === "PGRST116"; // reachable (even if empty)
+      });
+    }).catch(function(){ return false; });
+  }
+
+  /* ---- staff login overlay (email + password) ---- */
+  function ensureAuth() {
+    return client().then(function (c) {
+      if (!c) return null;
+      return c.auth.getSession().then(function (r) {
+        if (r.data && r.data.session) return r.data.session;
+        return promptLogin(c);
+      });
+    });
+  }
+  function promptLogin(c) {
+    return new Promise(function (resolve) {
+      var ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;inset:0;background:rgba(15,17,30,.6);display:flex;align-items:center;justify-content:center;z-index:9999";
+      ov.innerHTML =
+        '<div style="background:#fff;color:#1c2030;border-radius:14px;padding:24px;width:320px;font-family:sans-serif">' +
+        '<h3 style="margin:0 0 12px">Staff sign in</h3>' +
+        '<input id="_spEmail" placeholder="Email" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px">' +
+        '<input id="_spPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:12px;border:1px solid #ddd;border-radius:8px">' +
+        '<button id="_spGo" style="width:100%;padding:10px;background:#7c5cff;color:#fff;border:none;border-radius:8px;font-weight:600">Sign in</button>' +
+        '<div id="_spErr" style="color:#e5484d;font-size:12px;margin-top:8px"></div></div>';
+      document.body.appendChild(ov);
+      ov.querySelector("#_spGo").onclick = function () {
+        var email = ov.querySelector("#_spEmail").value.trim();
+        var pass  = ov.querySelector("#_spPass").value;
+        c.auth.signInWithPassword({ email: email, password: pass }).then(function (r) {
+          if (r.error) { ov.querySelector("#_spErr").textContent = r.error.message; return; }
+          document.body.removeChild(ov); resolve(r.data.session);
+        });
+      };
+    });
+  }
+
+  /* ---- admin: pull / push full state ---- */
+  function pull() {
+    return client().then(function (c) {
+      if (!c) return;
+      return c.from("salon_state").select("state").eq("id", cfg().salonId).maybeSingle()
+        .then(function (r) { if (r.data && r.data.state) bridge().applyState(r.data.state); });
+    });
+  }
+  function onSave(DB) {
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(function () { push(DB); }, 1200); // debounce writes
+  }
+  function push(DB) {
+    return client().then(function (c) {
+      return c.from("salon_state").upsert({ id: cfg().salonId, state: DB, updated_at: new Date().toISOString() })
+        .then(function () { return publishBookingConfig(DB); });
+    }).catch(function(){});
+  }
+  function publishBookingConfig(DB) {
+    var s = DB.settings;
+    var row = {
+      salon_id: cfg().salonId,
+      config: {
+        salonName: s.salonName, logo: s.logo, intro: s.bookingIntro, hours: s.hours,
+        slot: s.bookingSlotMinutes, currency: s.currency, currencySymbol: s.currencySymbol,
+        taxRate: s.taxRate, taxLabel: s.taxLabel, bookingEnabled: s.bookingEnabled,
+        depositEnabled: s.depositEnabled, depositPct: s.depositPct, payLink: s.payLink,
+        services: (DB.services || []).map(function (x) { return { id:x.id, name:x.name, category:x.category, duration:x.duration, price:x.price }; }),
+        staff:    (DB.staff || []).map(function (x)   { return { id:x.id, name:(x.name||"").split(" ")[0], role:x.role }; })
+      },
+      updated_at: new Date().toISOString()
+    };
+    return client().then(function (c) { if (!c) return; return c.from("booking_config").upsert(row); });
+  }
+
+  /* ---- admin boot: auth, pull, live-sync, watch for requests ---- */
+  function onBoot() {
+    if (isPublic()) return Promise.resolve();
+    return ensureAuth().then(function (session) {
+      if (!session || !sb) return;
+      return pull().then(function () {
+        if (!subscribed) {
+          subscribed = true;
+          sb.channel("state_" + cfg().salonId)
+            .on("postgres_changes",
+              { event: "*", schema: "public", table: "salon_state", filter: "id=eq." + cfg().salonId },
+              function (payload) { if (payload.new && payload.new.state) bridge().applyState(payload.new.state); })
+            .subscribe();
+          setInterval(pollRequests, 60000);
+          pollRequests();
+        }
+      });
+    }).catch(function(){});
+  }
+  function pollRequests() {
+    fetchRequests().then(function (rows) {
+      if (bridge().setRequests) bridge().setRequests(rows);
+      if (rows && rows.length) bridge().toast(rows.length + " online booking request(s)", "ok");
+    }).catch(function(){});
+    fetchReviews().then(function (rows) { if (bridge().setReviews) bridge().setReviews(rows); }).catch(function(){});
+  }
+  function fetchReviews() {
+    return client().then(function (c) {
+      if (!c) return [];
+      return c.from("reviews").select("*").eq("salon_id", cfg().salonId).order("created_at", { ascending: false })
+        .then(function (r) { return (r.data || []).map(function (x) { return { id: x.id, name: x.name, rating: x.rating, text: x.text, date: (x.created_at || "").slice(0, 10) }; }); });
+    });
+  }
+  function submitReview(payload) {
+    return client().then(function (c) {
+      if (!c) throw new Error("not configured");
+      return c.from("reviews").insert({ salon_id: cfg().salonId, name: payload.name, rating: payload.rating, text: payload.text || "", created_at: new Date().toISOString() })
+        .then(function (r) { if (r.error) throw r.error; return true; });
+    });
+  }
+  function fetchRequests() {
+    return client().then(function (c) {
+      if (!c) return [];
+      return c.from("booking_requests").select("*").eq("salon_id", cfg().salonId).eq("status", "pending")
+        .order("created_at", { ascending: true }).then(function (r) { return r.data || []; });
+    });
+  }
+  function updateRequest(id, status) {
+    return client().then(function (c) {
+      if (!c) return null;
+      return c.from("booking_requests").update({ status: status }).eq("id", id);
+    }).catch(function(){});
+  }
+  function acceptRequest(id) { return updateRequest(id, "accepted"); }
+
+  /* ---- public booking page ---- */
+  function fetchBookingConfig() {
+    return client().then(function (c) {
+      if (!c) return null;
+      return c.from("booking_config").select("config").eq("salon_id", cfg().salonId).maybeSingle()
+        .then(function (r) { return r.data ? r.data.config : null; });
+    });
+  }
+  function submitBooking(payload) {
+    return client().then(function (c) {
+      if (!c) throw new Error("not configured");
+      return c.from("booking_requests").insert({
+        salon_id: cfg().salonId, payload: payload, status: "pending", created_at: new Date().toISOString()
+      }).then(function (r) { if (r.error) throw r.error; return true; });
+    });
+  }
+
+  window.SalonProCloud = {
+    init: init, onSave: onSave, onBoot: onBoot,
+    fetchBookingConfig: fetchBookingConfig, submitBooking: submitBooking,
+    fetchRequests: fetchRequests, acceptRequest: acceptRequest, updateRequest: updateRequest, publishBookingConfig: publishBookingConfig,
+    submitReview: submitReview, fetchReviews: fetchReviews
+  };
+})();
+
+
+/* ---------- boot ---------- */
+loadDB();
+const h=location.hash.slice(1); if(ROUTES.includes(h)) current=h;
+render();
+if(DB.settings.cloud && DB.settings.cloud.enabled && window.SalonProCloud && SalonProCloud.onBoot){ try{ SalonProCloud.onBoot(); }catch(e){} }
+</script>
+</body>
+</html>
