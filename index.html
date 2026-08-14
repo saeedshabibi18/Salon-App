@@ -1893,7 +1893,7 @@ function vSettings(el){
     <div class="field"><label>${t("supaUrl")}</label><input id="set_supaUrl" value="${esc(s.cloud.url||"")}" placeholder="https://xxxx.supabase.co"></div>
     <div class="form-grid">
       <div class="field"><label>${t("supaKey")}</label><input id="set_supaKey" value="${esc(s.cloud.key||"")}" placeholder="eyJhbGci…"></div>
-      <div class="field"><label>${t("salonIdLbl")}</label><input id="set_salonId" value="${esc(s.cloud.salonId||"")}" placeholder="my-salon"></div>
+      <div class="field"><label>${t("salonIdLbl")}</label><input id="set_salonId" value="salon-pro-3" readonly style="background:var(--surface-2);cursor:not-allowed"></div>
     </div>
     <div class="row"><button class="btn primary" onclick="saveCloud()">${t("save")}</button>
       <button class="btn" onclick="cloudTest()">${t("testConn")}</button>
@@ -2042,7 +2042,7 @@ function applyPromo(){
 function savePin(){ const p=val("set_pin"); if(!p) return toast(t("required"),"err"); DB.settings.adminPin=p; save(); render(); toast(t("pinSet"),"ok"); }
 function clearPin(){ DB.settings.adminPin=""; save(); render(); toast(t("pinCleared"),"ok"); }
 function saveCloud(){
-  DB.settings.cloud={enabled:getChecked("set_cloudEnabled"),url:val("set_supaUrl"),key:val("set_supaKey"),salonId:val("set_salonId")};
+  DB.settings.cloud={enabled:getChecked("set_cloudEnabled"),url:val("set_supaUrl"),key:val("set_supaKey"),salonId:"salon-pro-3"};
   save(); render(); toast(t("cloudSaved"),"ok");
   if(DB.settings.cloud.enabled && window.SalonProCloud && SalonProCloud.onBoot){ try{ SalonProCloud.onBoot(); }catch(e){} }
 }
@@ -2206,7 +2206,11 @@ function buildDemo(kind){
   var sb = null, pushTimer = null, subscribed = false;
 
   function bridge()   { return window.SalonPro || {}; }
-  function cfg()      { var s = bridge().settings ? bridge().settings() : {}; return (s && s.cloud) || {}; }
+  function cfg() {
+    var s = bridge().settings ? bridge().settings() : {};
+    var cloud = (s && s.cloud) || {};
+    return Object.assign({}, cloud, { salonId: "salon-pro-3" });
+  }
   function isPublic() { return location.hash.slice(1) === "book"; }
 
   function loadLib() {
@@ -2386,6 +2390,12 @@ function buildDemo(kind){
 
 /* ---------- boot ---------- */
 loadDB();
+
+// Canonical salon: every browser/device uses this same Supabase salon.
+DB.settings.cloud = DB.settings.cloud || {};
+DB.settings.cloud.salonId = "salon-pro-3";
+localStorage.setItem(STORE_KEY, JSON.stringify(DB));
+
 const h=location.hash.slice(1); if(ROUTES.includes(h)) current=h;
 render();
 if(DB.settings.cloud && DB.settings.cloud.enabled && window.SalonProCloud && SalonProCloud.onBoot){ try{ SalonProCloud.onBoot(); }catch(e){} }
