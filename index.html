@@ -21,6 +21,13 @@
   --warn:#f0a020; --warn-soft:#3a2f16; --danger:#f0595e; --danger-soft:#3a1f21;
   --shadow:0 1px 3px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
 }
+[data-theme="cream"]{
+  --bg:#f7f1e6; --surface:#fffdf8; --surface-2:#f0e6d3; --border:#e5d7b8;
+  --text:#3a3226; --muted:#8a7c63; --primary:#b6903f; --primary-d:#9c7a33;
+  --primary-soft:#f2e6c8; --success:#3f8f5f; --success-soft:#e6f0e2;
+  --warn:#c17f1f; --warn-soft:#f7ecd6; --danger:#b8433f; --danger-soft:#f6e2df;
+  --info:#4d739e; --shadow:0 1px 3px rgba(80,60,20,.08),0 8px 24px rgba(80,60,20,.08);
+}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{
@@ -240,7 +247,7 @@ const I18N = {
     checkout:"Checkout", addItem:"Add item", quantity:"Qty", amount:"Amount", notes:"Notes",
     items:"Items", item:"Item", noItems:"No items — add a service or product above.",
     salonProfile:"Salon Profile", region:"Region", currency:"Currency", taxRate:"Tax / VAT rate (%)",
-    address:"Address", theme:"Theme", language:"Language", light:"Light", dark:"Dark",
+    address:"Address", theme:"Theme", language:"Language", light:"Light", dark:"Dark", cream:"Cream",
     exportData:"Export / Backup", importData:"Restore Backup", resetData:"Reset all data",
     salonName:"Salon name", logo:"Logo", taxLabelField:"Tax label (e.g. VAT, Sales Tax)",
     regionCurrency:"Region & Currency", data:"Data", emailBackup:"Email backup to myself",
@@ -359,7 +366,7 @@ const I18N = {
     checkout:"الدفع", addItem:"إضافة عنصر", quantity:"الكمية", amount:"المبلغ", notes:"ملاحظات",
     items:"العناصر", item:"العنصر", noItems:"لا توجد عناصر — أضف خدمة أو منتجاً بالأعلى.",
     salonProfile:"ملف الصالون", region:"المنطقة", currency:"العملة", taxRate:"نسبة الضريبة (%)",
-    address:"العنوان", theme:"المظهر", language:"اللغة", light:"فاتح", dark:"داكن",
+    address:"العنوان", theme:"المظهر", language:"اللغة", light:"فاتح", dark:"داكن", cream:"كريمي",
     exportData:"تصدير / نسخة احتياطية", importData:"استعادة النسخة", resetData:"إعادة تعيين البيانات",
     salonName:"اسم الصالون", logo:"الشعار", taxLabelField:"مسمى الضريبة (مثل ض.ق.م أو ضريبة المبيعات)",
     regionCurrency:"المنطقة والعملة", data:"البيانات", emailBackup:"إرسال نسخة احتياطية إلى بريدي",
@@ -495,7 +502,7 @@ function defaultDB(){
       bookingIntro:"Book your appointment online in a few taps.",
       notifyChannel:"whatsapp", templates:defaultTemplates(),
       loyaltyEnabled:true, loyaltyEarnRate:1, loyaltyRedeemValue:0.05, tipEnabled:true,
-      adminPin:"", cloud:{enabled:false,url:"",key:"",salonId:""},
+      adminPin:"", cloud:{enabled:true,url:"https://hcwegwgvgppyxzyswjgb.supabase.co",key:"sb_publishable_OOVteWV-u9HQk08yHNWDQw_tcgD8xM6",salonId:"salon_pro"},
       payEnabled:false, payLink:"", depositEnabled:false, depositPct:20, payCheckoutUrl:"",
       referralsEnabled:true, referralBonus:50, homeServiceEnabled:false,
       aiEnabled:false, aiUrl:"", aiConcierge:true
@@ -1821,7 +1828,8 @@ function vSettings(el){
           <option value="ar" ${s.lang==="ar"?"selected":""}>العربية (Arabic)</option></select></div>
         <div class="field"><label>${t("theme")}</label><select id="set_theme">
           <option value="light" ${s.theme==="light"?"selected":""}>${t("light")}</option>
-          <option value="dark" ${s.theme==="dark"?"selected":""}>${t("dark")}</option></select></div>
+          <option value="dark" ${s.theme==="dark"?"selected":""}>${t("dark")}</option>
+          <option value="cream" ${s.theme==="cream"?"selected":""}>${t("cream")}</option></select></div>
       </div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="saveSettings()">${t("save")}</button>
     </div>
