@@ -658,14 +658,14 @@ window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(RO
 /* ============================================================
    RENDER / AUTHENTICATION
    ============================================================ */
-const INVESTOR_EMAIL="investor@salonpro.com";
+const OWNER_EMAILS=["owner@salonpro.com","staff@salonpro.com"];
 let authState="checking"; // checking | authenticated | signed_out | error
 let authSession=null;
 let investorMode=false;
 function isInvestorMode(){ return investorMode; }
 function setInvestorMode(session){
   const email=String(session&&session.user&&session.user.email||"").trim().toLowerCase();
-  investorMode=email===INVESTOR_EMAIL;
+  investorMode=!!email && !OWNER_EMAILS.includes(email);
   document.body.classList.toggle("investor-mode", investorMode);
 }
 function investorWriteBlocked(){
@@ -685,11 +685,14 @@ function renderAuthLoading(){
 
 function renderAuthRequired(message){
   document.getElementById("app").innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
-    <div class="card pad" style="max-width:420px;width:100%;text-align:center">
-      <div style="font-size:48px">🔒</div>
-      <h2 style="margin:10px 0 6px">Owner sign-in required</h2>
-      <p class="muted" style="margin-bottom:18px">${esc(message||"Please sign in with your SalonPro account to access the dashboard.")}</p>
-      <button class="btn primary" style="width:100%;justify-content:center" onclick="SalonProCloud && SalonProCloud.login ? SalonProCloud.login() : location.reload()">Sign in</button>
+    <div class="card pad" style="max-width:460px;width:100%;text-align:center">
+      <div style="font-size:48px">💇</div>
+      <h2 style="margin:10px 0 6px">SalonPro</h2>
+      <p class="muted" style="margin-bottom:20px">${esc(message||"Choose how you want to use SalonPro.")}</p>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="SalonProCloud && SalonProCloud.login ? SalonProCloud.login() : location.reload()">🔐 Sign in</button>
+      <button class="btn" style="width:100%;justify-content:center;margin-bottom:10px" onclick="SalonProCloud && SalonProCloud.demoLogin ? SalonProCloud.demoLogin() : location.reload()">👁️ View Demo — Read Only</button>
+      <button class="btn" style="width:100%;justify-content:center" onclick="location.hash='book'; render()">📅 Booking</button>
+      <p class="muted" style="font-size:12px;margin-top:16px">Demo users can explore the application but cannot change salon data.</p>
     </div></div>`;
 }
 
@@ -863,7 +866,7 @@ function sidebar(){
       ${link("reports","📈",t("reports"))}
       ${link("settings","⚙️",t("settings"))}
     </div>
-    <div class="sb-foot">SalonPro • v1.5<br>${t("dataStored")}</div>
+    <div style="padding:12px 14px"><a class="btn" style="width:100%;justify-content:center;text-decoration:none" href="#book" onclick="event.preventDefault();location.hash='book';render()">📅 Booking</a></div><div class="sb-foot">SalonPro • v1.5<br>${t("dataStored")}</div>
   </div>`;
 }
 function topbar(){
@@ -2318,7 +2321,7 @@ function buildDemo(kind){
       });
     });
   }
-  function promptLogin(c) {
+  function promptLogin(c, demoMode) {
     return new Promise(function (resolve, reject) {
       var existing=document.getElementById("_spAuthOverlay");
       if(existing) existing.remove();
@@ -2337,20 +2340,34 @@ function buildDemo(kind){
       document.body.appendChild(ov);
       var go=ov.querySelector("#_spGo");
       var submit=function(){
-        var email=ov.querySelector("#_spEmail").value.trim();
-        var pass=ov.querySelector("#_spPass").value;
-        if(!email||!pass){ ov.querySelector("#_spErr").textContent="Email and password are required."; return; }
-        go.disabled=true; go.textContent="Signing in…";
-        c.auth.signInWithPassword({email:email,password:pass}).then(function(r){
-          if(r.error){ go.disabled=false; go.textContent="Sign in"; ov.querySelector("#_spErr").textContent=r.error.message; return; }
-          ov.remove(); resolve(r.data.session);
-        }).catch(function(e){ go.disabled=false; go.textContent="Sign in"; ov.querySelector("#_spErr").textContent=String(e.message||e); });
+        var email=(ov.querySelector("#_spEmail").value||"").trim();
+        var pass=ov.querySelector("#_spPass").value||"";
+        var err=ov.querySelector("#_spAuthErr");
+        if(!email||!pass){ err.textContent="Enter your email and password."; return; }
+        err.textContent="Signing in…";
+        var finish=function(session){ if(!session) throw new Error("If email confirmation is enabled, confirm your email and then use View Demo again."); ov.remove(); resolve(session); };
+        if(demoMode){
+          c.auth.signUp({email:email,password:pass}).then(function(r){
+            if(r.error && !/already registered|already exists/i.test(r.error.message||"")) throw r.error;
+            if(r.data && r.data.session) return r.data.session;
+            return c.auth.signInWithPassword({email:email,password:pass}).then(function(x){ if(x.error) throw x.error; return x.data.session; });
+          }).then(finish).catch(function(e){ err.textContent=e.message||"Demo sign-in failed."; });
+        }else{
+          c.auth.signInWithPassword({email:email,password:pass}).then(function(r){ if(r.error) throw r.error; return r.data.session; }).then(finish).catch(function(e){ err.textContent=e.message||"Sign-in failed."; });
+        }
       };
       go.onclick=submit;
       ov.querySelector("#_spPass").addEventListener("keydown",function(e){if(e.key==="Enter")submit();});
       setTimeout(function(){ov.querySelector("#_spEmail").focus();},50);
     });
   }
+  function demoLogin(){
+    return client().then(function(c){ return promptLogin(c, true); }).then(function(session){
+      if(window.SalonPro){ window.SalonPro.authState="authenticated"; }
+      return session;
+    }).then(function(session){ return onBoot(session); });
+  }
+
   function login(){
     return client().then(function(c){ return promptLogin(c); }).then(function(session){
       if(window.SalonPro){ window.SalonPro.authState="authenticated"; }
@@ -2493,7 +2510,7 @@ function buildDemo(kind){
   }
 
   window.SalonProCloud = {
-    init: init, onSave: onSave, onBoot: onBoot, login: login, signOut: signOut, ensureAuth: ensureAuth,
+    init: init, onSave: onSave, onBoot: onBoot, login: login, demoLogin: demoLogin, signOut: signOut, ensureAuth: ensureAuth,
     fetchBookingConfig: fetchBookingConfig, submitBooking: submitBooking,
     fetchRequests: fetchRequests, acceptRequest: acceptRequest, updateRequest: updateRequest, publishBookingConfig: publishBookingConfig,
     submitReview: submitReview, fetchReviews: fetchReviews
