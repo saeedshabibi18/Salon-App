@@ -211,6 +211,27 @@ textarea{resize:vertical;min-height:70px}
   #menuBtn{display:inline-flex !important}
 }
 #menuBtn{display:none}
+
+/* ---------- Investor read-only presentation mode ---------- */
+body.investor-mode .btn:not(.investor-allow),
+body.investor-mode input,
+body.investor-mode select,
+body.investor-mode textarea {
+  pointer-events:none !important;
+  opacity:.55;
+}
+body.investor-mode .demo-card {
+  pointer-events:none !important;
+  opacity:.55;
+}
+body.investor-mode .investor-banner {
+  display:flex !important;
+}
+.investor-banner {
+  display:none; align-items:center; gap:8px; margin:0 22px; padding:7px 12px;
+  border:1px solid var(--primary-soft); background:var(--primary-soft);
+  color:var(--primary-d); border-radius:10px; font-size:12px; font-weight:700;
+}
 </style>
 </head>
 <body>
@@ -525,8 +546,12 @@ function ensureDefaults(){
 function loadDB(){ try{const r=localStorage.getItem(STORE_KEY); if(r){const p=JSON.parse(r);
   DB=Object.assign(defaultDB(),p); DB.settings=Object.assign(defaultDB().settings,p.settings||{}); }
   }catch(e){console.warn(e);} ensureDefaults(); }
-function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB));
-  if(window.SalonProCloud && DB.settings.cloud && DB.settings.cloud.enabled && SalonProCloud.onSave){ try{ SalonProCloud.onSave(DB); }catch(e){} } }
+function save(){
+  if(investorMode) return false;
+  localStorage.setItem(STORE_KEY, JSON.stringify(DB));
+  if(window.SalonProCloud && DB.settings.cloud && DB.settings.cloud.enabled && SalonProCloud.onSave){ try{ SalonProCloud.onSave(DB); }catch(e){} }
+  return true;
+}
 function uid(p){ return (p||"id")+"_"+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4); }
 
 /* ---------- Helpers ---------- */
@@ -633,8 +658,21 @@ window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(RO
 /* ============================================================
    RENDER / AUTHENTICATION
    ============================================================ */
+const INVESTOR_EMAIL="investor@salonpro.com";
 let authState="checking"; // checking | authenticated | signed_out | error
 let authSession=null;
+let investorMode=false;
+function isInvestorMode(){ return investorMode; }
+function setInvestorMode(session){
+  const email=String(session&&session.user&&session.user.email||"").trim().toLowerCase();
+  investorMode=email===INVESTOR_EMAIL;
+  document.body.classList.toggle("investor-mode", investorMode);
+}
+function investorWriteBlocked(){
+  if(!investorMode) return false;
+  toast("Investor demo account is read-only.","err");
+  return true;
+}
 
 function renderAuthLoading(){
   document.getElementById("app").innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
@@ -668,11 +706,14 @@ function render(){
   if(authState==="checking"){ renderAuthLoading(); return; }
   if(authState!=="authenticated"){ renderAuthRequired(); return; }
 
-  // Existing setup/PIN is now only a convenience layer, never authentication.
-  if(DB.settings.setupDone && DB.settings.adminPin && !sessionUnlocked){ renderLock(); return; }
-  if(!DB.settings.setupDone){ renderWelcome(); return; }
+  // Investor accounts bypass the local PIN/setup flow and are always read-only.
+  // The real security boundary remains Supabase Auth + RLS.
+  if(!investorMode){
+    if(DB.settings.setupDone && DB.settings.adminPin && !sessionUnlocked){ renderLock(); return; }
+    if(!DB.settings.setupDone){ renderWelcome(); return; }
+  }
   const app=document.getElementById("app");
-  app.innerHTML=`${sidebar()}<div class="main">${topbar()}<div class="content" id="view"></div></div>`;
+  app.innerHTML=`${sidebar()}<div class="main">${topbar()}<div class="investor-banner">👁️ Investor presentation mode — read only</div><div class="content" id="view"></div></div>`;
   const view=document.getElementById("view");
   ({dashboard:vDashboard,appointments:vAppointments,clients:vClients,services:vServices,
     staff:vStaff,products:vProducts,invoices:vInvoices,reports:vReports,settings:vSettings}[current]||vDashboard)(view);
@@ -697,7 +738,7 @@ function tryUnlock(){
 let cloudRequests=[], cloudReviews=[];
 window.SalonPro={
   get:()=>DB,
-  applyState:(s)=>{ if(!s||!s.settings) return; DB=Object.assign(defaultDB(),s); DB.settings=Object.assign(defaultDB().settings,s.settings); ensureDefaults(); localStorage.setItem(STORE_KEY,JSON.stringify(DB)); render(); },
+  applyState:(s)=>{ if(!s||!s.settings) return; DB=Object.assign(defaultDB(),s); DB.settings=Object.assign(defaultDB().settings,s.settings); ensureDefaults(); if(!investorMode) localStorage.setItem(STORE_KEY,JSON.stringify(DB)); render(); },
   setRequests:(rows)=>{ cloudRequests=rows||[]; if(current==="dashboard"||current==="appointments") render(); },
   setReviews:(rows)=>{ cloudReviews=rows||[]; if(current==="dashboard") render(); },
   render:()=>render(), toast:(m,t2)=>toast(m,t2), settings:()=>DB.settings,
@@ -829,21 +870,23 @@ function topbar(){
   const titles={dashboard:t("dashboard"),appointments:t("appointments"),clients:t("clients"),services:t("services"),
     staff:t("staff"),products:t("products"),invoices:t("invoices"),reports:t("reports"),settings:t("settings")};
   let quick="";
-  if(current==="dashboard"||current==="appointments") quick=`<button class="btn primary" onclick="apptModal()">＋ ${t("newBooking")}</button>`;
-  if(current==="clients") quick=`<button class="btn primary" onclick="clientModal()">＋ ${t("newClient")}</button>`;
-  if(current==="invoices") quick=`<button class="btn primary" onclick="invoiceModal()">＋ ${t("newInvoice")}</button>`;
+  if(!investorMode){
+    if(current==="dashboard"||current==="appointments") quick=`<button class="btn primary" onclick="apptModal()">＋ ${t("newBooking")}</button>`;
+    if(current==="clients") quick=`<button class="btn primary" onclick="clientModal()">＋ ${t("newClient")}</button>`;
+    if(current==="invoices") quick=`<button class="btn primary" onclick="invoiceModal()">＋ ${t("newInvoice")}</button>`;
+  }
   return `<div class="topbar">
     <button class="btn ghost icon" id="menuBtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
     <h1>${titles[current]||""}</h1><div class="spacer"></div>
-    <button class="btn ghost icon" title="${t("aiTitle")}" onclick="aiModal()">🤖</button>
-    <button class="btn ghost icon" title="Theme" onclick="toggleTheme()">${DB.settings.theme==="dark"?"☀️":"🌙"}</button>
-    <button class="btn ghost icon" title="Language" onclick="toggleLang()">${DB.settings.lang==="ar"?"EN":"ع"}</button>
+    ${investorMode?"":`<button class="btn ghost icon" title="${t("aiTitle")}" onclick="aiModal()">🤖</button>`}
+    ${investorMode?"":`<button class="btn ghost icon" title="Theme" onclick="toggleTheme()">${DB.settings.theme==="dark"?"☀️":"🌙"}</button>`}
+    ${investorMode?"":`<button class="btn ghost icon" title="Language" onclick="toggleLang()">${DB.settings.lang==="ar"?"EN":"ع"}</button>`}
     ${quick}
-    <button class="btn ghost" title="Sign out" onclick="SalonProCloud && SalonProCloud.signOut ? SalonProCloud.signOut() : null">Sign out</button>
+    <button class="btn ghost investor-allow" title="Sign out" onclick="SalonProCloud && SalonProCloud.signOut ? SalonProCloud.signOut() : null">Sign out</button>
   </div>`;
 }
-function toggleTheme(){ DB.settings.theme=DB.settings.theme==="dark"?"light":"dark"; save(); render(); }
-function toggleLang(){ DB.settings.lang=DB.settings.lang==="ar"?"en":"ar"; save(); render(); }
+function toggleTheme(){ if(investorWriteBlocked()) return; DB.settings.theme=DB.settings.theme==="dark"?"light":"dark"; save(); render(); }
+function toggleLang(){ if(investorWriteBlocked()) return; DB.settings.lang=DB.settings.lang==="ar"?"en":"ar"; save(); render(); }
 
 /* ---------- Welcome / first run ---------- */
 function renderWelcome(){
@@ -2334,10 +2377,12 @@ function buildDemo(kind){
     });
   }
   function onSave(DB) {
+    if (investorMode) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(function () { push(DB); }, 1200); // debounce writes
   }
   function push(DB) {
+    if (investorMode) return Promise.resolve(false);
     return client().then(function (c) {
       return c.from("salon_state").upsert({ id: cfg().salonId, state: DB, updated_at: new Date().toISOString() })
         .then(function () { return publishBookingConfig(DB); });
@@ -2368,6 +2413,7 @@ function buildDemo(kind){
       if (!session || !sb) throw new Error("Authentication required");
       authSession=session;
       authState="authenticated";
+      setInvestorMode(session);
       if(window.SalonPro){ window.SalonPro.authState="authenticated"; }
       render();
       return pull().then(function () {
@@ -2385,6 +2431,8 @@ function buildDemo(kind){
     }).catch(function(e){
       authSession=null;
       authState="signed_out";
+      investorMode=false;
+      document.body.classList.remove("investor-mode");
       if(window.SalonPro){ window.SalonPro.authState="signed_out"; }
       render();
       console.error("SalonPro authentication/boot failed:",e);
@@ -2419,6 +2467,7 @@ function buildDemo(kind){
     });
   }
   function updateRequest(id, status) {
+    if (investorMode) return Promise.resolve(null);
     return client().then(function (c) {
       if (!c) return null;
       return c.from("booking_requests").update({ status: status }).eq("id", id);
