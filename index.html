@@ -659,6 +659,10 @@ window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(RO
    RENDER / AUTHENTICATION
    ============================================================ */
 const OWNER_EMAILS=["owner@salonpro.com","staff@salonpro.com"];
+
+const DEMO_EMAIL="demo@salonpro.com";
+const DEMO_PASSWORD="12345";
+
 let authState="checking"; // checking | authenticated | signed_out | error
 let authSession=null;
 let investorMode=false;
@@ -2342,7 +2346,7 @@ function buildDemo(kind){
       var submit=function(){
         var email=(ov.querySelector("#_spEmail").value||"").trim();
         var pass=ov.querySelector("#_spPass").value||"";
-        var err=ov.querySelector("#_spAuthErr");
+        var err=ov.querySelector("#_spErr");
         if(!email||!pass){ err.textContent="Enter your email and password."; return; }
         err.textContent="Signing in…";
         var finish=function(session){ if(!session) throw new Error("If email confirmation is enabled, confirm your email and then use View Demo again."); ov.remove(); resolve(session); };
@@ -2362,11 +2366,34 @@ function buildDemo(kind){
     });
   }
   function demoLogin(){
-    return client().then(function(c){ return promptLogin(c, true); }).then(function(session){
-      if(window.SalonPro){ window.SalonPro.authState="authenticated"; }
-      return session;
-    }).then(function(session){ return onBoot(session); });
-  }
+  return client()
+    .then(function(c){
+      if(!c) throw new Error("Supabase is not configured.");
+
+      return c.auth.signInWithPassword({
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD
+      });
+    })
+    .then(function(r){
+      if(r.error) throw r.error;
+
+      if(!r.data || !r.data.session){
+        throw new Error("Demo account did not return a session.");
+      }
+
+      if(window.SalonPro){
+        window.SalonPro.authState="authenticated";
+      }
+
+      return onBoot(r.data.session);
+    })
+    .catch(function(e){
+      console.error("Demo login failed:", e);
+      toast("Demo is temporarily unavailable. Please try again.","err");
+      throw e;
+    });
+}
 
   function login(){
     return client().then(function(c){ return promptLogin(c); }).then(function(session){
