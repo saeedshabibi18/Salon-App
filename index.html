@@ -631,8 +631,30 @@ function navigate(v){ current=v; location.hash=v; const sb=document.querySelecto
 window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(ROUTES.includes(h)&&h!==current){current=h;render();} });
 
 /* ============================================================
-   RENDER
+   RENDER / AUTHENTICATION
    ============================================================ */
+let authState="checking"; // checking | authenticated | signed_out | error
+let authSession=null;
+
+function renderAuthLoading(){
+  document.getElementById("app").innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div class="card pad" style="max-width:380px;width:100%;text-align:center">
+      <div style="font-size:42px">🔐</div>
+      <h2 style="margin:10px 0 6px">SalonPro</h2>
+      <p class="muted">Checking your secure session…</p>
+    </div></div>`;
+}
+
+function renderAuthRequired(message){
+  document.getElementById("app").innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div class="card pad" style="max-width:420px;width:100%;text-align:center">
+      <div style="font-size:48px">🔒</div>
+      <h2 style="margin:10px 0 6px">Owner sign-in required</h2>
+      <p class="muted" style="margin-bottom:18px">${esc(message||"Please sign in with your SalonPro account to access the dashboard.")}</p>
+      <button class="btn primary" style="width:100%;justify-content:center" onclick="SalonProCloud && SalonProCloud.login ? SalonProCloud.login() : location.reload()">Sign in</button>
+    </div></div>`;
+}
+
 function render(){
   document.documentElement.setAttribute("data-theme",DB.settings.theme||"light");
   document.documentElement.setAttribute("dir",DB.settings.lang==="ar"?"rtl":"ltr");
@@ -640,6 +662,13 @@ function render(){
   if(location.hash.slice(1)==="book"){ renderPublicBooking(); return; }
   if(location.hash.slice(1)==="review"){ renderPublicReview(); return; }
   if(location.hash.slice(1)==="manage"){ renderPublicManage(); return; }
+
+  // Every non-public route requires a real Supabase Auth session.
+  // The old localStorage PIN/setup state is NOT a security boundary.
+  if(authState==="checking"){ renderAuthLoading(); return; }
+  if(authState!=="authenticated"){ renderAuthRequired(); return; }
+
+  // Existing setup/PIN is now only a convenience layer, never authentication.
   if(DB.settings.setupDone && DB.settings.adminPin && !sessionUnlocked){ renderLock(); return; }
   if(!DB.settings.setupDone){ renderWelcome(); return; }
   const app=document.getElementById("app");
@@ -810,6 +839,7 @@ function topbar(){
     <button class="btn ghost icon" title="Theme" onclick="toggleTheme()">${DB.settings.theme==="dark"?"☀️":"🌙"}</button>
     <button class="btn ghost icon" title="Language" onclick="toggleLang()">${DB.settings.lang==="ar"?"EN":"ع"}</button>
     ${quick}
+    <button class="btn ghost" title="Sign out" onclick="SalonProCloud && SalonProCloud.signOut ? SalonProCloud.signOut() : null">Sign out</button>
   </div>`;
 }
 function toggleTheme(){ DB.settings.theme=DB.settings.theme==="dark"?"light":"dark"; save(); render(); }
@@ -1893,7 +1923,7 @@ function vSettings(el){
     <div class="field"><label>${t("supaUrl")}</label><input id="set_supaUrl" value="${esc(s.cloud.url||"")}" placeholder="https://xxxx.supabase.co"></div>
     <div class="form-grid">
       <div class="field"><label>${t("supaKey")}</label><input id="set_supaKey" value="${esc(s.cloud.key||"")}" placeholder="eyJhbGci…"></div>
-      <div class="field"><label>${t("salonIdLbl")}</label><input id="set_salonId" value="salon-pro-3" readonly style="background:var(--surface-2);cursor:not-allowed"></div>
+      <div class="field"><label>${t("salonIdLbl")}</label><input id="set_salonId" value="salon-pro-3" readonly><div class="hint">This application is permanently connected to salon-pro-3.</div></div>
     </div>
     <div class="row"><button class="btn primary" onclick="saveCloud()">${t("save")}</button>
       <button class="btn" onclick="cloudTest()">${t("testConn")}</button>
@@ -2042,7 +2072,7 @@ function applyPromo(){
 function savePin(){ const p=val("set_pin"); if(!p) return toast(t("required"),"err"); DB.settings.adminPin=p; save(); render(); toast(t("pinSet"),"ok"); }
 function clearPin(){ DB.settings.adminPin=""; save(); render(); toast(t("pinCleared"),"ok"); }
 function saveCloud(){
-  DB.settings.cloud={enabled:getChecked("set_cloudEnabled"),url:val("set_supaUrl"),key:val("set_supaKey"),salonId:"salon-pro-3"};
+  DB.settings.cloud={enabled:true,url:val("set_supaUrl"),key:val("set_supaKey"),salonId:"salon-pro-3"};
   save(); render(); toast(t("cloudSaved"),"ok");
   if(DB.settings.cloud.enabled && window.SalonProCloud && SalonProCloud.onBoot){ try{ SalonProCloud.onBoot(); }catch(e){} }
 }
@@ -2206,11 +2236,7 @@ function buildDemo(kind){
   var sb = null, pushTimer = null, subscribed = false;
 
   function bridge()   { return window.SalonPro || {}; }
-  function cfg() {
-    var s = bridge().settings ? bridge().settings() : {};
-    var cloud = (s && s.cloud) || {};
-    return Object.assign({}, cloud, { salonId: "salon-pro-3" });
-  }
+  function cfg()      { var s = bridge().settings ? bridge().settings() : {}; var c=(s && s.cloud) || {}; return Object.assign({}, c, { salonId: "salon-pro-3" }); }
   function isPublic() { return location.hash.slice(1) === "book"; }
 
   function loadLib() {
@@ -2239,10 +2265,10 @@ function buildDemo(kind){
     }).catch(function(){ return false; });
   }
 
-  /* ---- staff login overlay (email + password) ---- */
+  /* ---- mandatory staff authentication ---- */
   function ensureAuth() {
     return client().then(function (c) {
-      if (!c) return null;
+      if (!c) throw new Error("Supabase is not configured");
       return c.auth.getSession().then(function (r) {
         if (r.data && r.data.session) return r.data.session;
         return promptLogin(c);
@@ -2250,25 +2276,52 @@ function buildDemo(kind){
     });
   }
   function promptLogin(c) {
-    return new Promise(function (resolve) {
+    return new Promise(function (resolve, reject) {
+      var existing=document.getElementById("_spAuthOverlay");
+      if(existing) existing.remove();
       var ov = document.createElement("div");
-      ov.style.cssText = "position:fixed;inset:0;background:rgba(15,17,30,.6);display:flex;align-items:center;justify-content:center;z-index:9999";
+      ov.id="_spAuthOverlay";
+      ov.style.cssText = "position:fixed;inset:0;background:rgba(15,17,30,.72);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px";
       ov.innerHTML =
-        '<div style="background:#fff;color:#1c2030;border-radius:14px;padding:24px;width:320px;font-family:sans-serif">' +
-        '<h3 style="margin:0 0 12px">Staff sign in</h3>' +
-        '<input id="_spEmail" placeholder="Email" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px">' +
-        '<input id="_spPass" type="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:12px;border:1px solid #ddd;border-radius:8px">' +
-        '<button id="_spGo" style="width:100%;padding:10px;background:#7c5cff;color:#fff;border:none;border-radius:8px;font-weight:600">Sign in</button>' +
-        '<div id="_spErr" style="color:#e5484d;font-size:12px;margin-top:8px"></div></div>';
+        '<div style="background:#fff;color:#1c2030;border-radius:14px;padding:24px;width:100%;max-width:380px;font-family:sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.25)">' +
+        '<div style="font-size:36px;text-align:center">🔐</div>' +
+        '<h3 style="margin:8px 0 6px;text-align:center">SalonPro sign in</h3>' +
+        '<p style="font-size:13px;color:#6b7189;text-align:center;margin:0 0 16px">Owner/staff credentials are required to access the dashboard.</p>' +
+        '<input id="_spEmail" autocomplete="username" placeholder="Email" style="box-sizing:border-box;width:100%;padding:11px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px">' +
+        '<input id="_spPass" autocomplete="current-password" type="password" placeholder="Password" style="box-sizing:border-box;width:100%;padding:11px;margin-bottom:12px;border:1px solid #ddd;border-radius:8px">' +
+        '<button id="_spGo" style="width:100%;padding:11px;background:#7c5cff;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Sign in</button>' +
+        '<div id="_spErr" style="color:#e5484d;font-size:12px;margin-top:9px;text-align:center"></div></div>';
       document.body.appendChild(ov);
-      ov.querySelector("#_spGo").onclick = function () {
-        var email = ov.querySelector("#_spEmail").value.trim();
-        var pass  = ov.querySelector("#_spPass").value;
-        c.auth.signInWithPassword({ email: email, password: pass }).then(function (r) {
-          if (r.error) { ov.querySelector("#_spErr").textContent = r.error.message; return; }
-          document.body.removeChild(ov); resolve(r.data.session);
-        });
+      var go=ov.querySelector("#_spGo");
+      var submit=function(){
+        var email=ov.querySelector("#_spEmail").value.trim();
+        var pass=ov.querySelector("#_spPass").value;
+        if(!email||!pass){ ov.querySelector("#_spErr").textContent="Email and password are required."; return; }
+        go.disabled=true; go.textContent="Signing in…";
+        c.auth.signInWithPassword({email:email,password:pass}).then(function(r){
+          if(r.error){ go.disabled=false; go.textContent="Sign in"; ov.querySelector("#_spErr").textContent=r.error.message; return; }
+          ov.remove(); resolve(r.data.session);
+        }).catch(function(e){ go.disabled=false; go.textContent="Sign in"; ov.querySelector("#_spErr").textContent=String(e.message||e); });
       };
+      go.onclick=submit;
+      ov.querySelector("#_spPass").addEventListener("keydown",function(e){if(e.key==="Enter")submit();});
+      setTimeout(function(){ov.querySelector("#_spEmail").focus();},50);
+    });
+  }
+  function login(){
+    return client().then(function(c){ return promptLogin(c); }).then(function(session){
+      if(window.SalonPro){ window.SalonPro.authState="authenticated"; }
+      return session;
+    }).then(function(session){ return onBoot(session); });
+  }
+  function signOut(){
+    return client().then(function(c){ return c.auth.signOut(); }).then(function(){
+      subscribed=false;
+      authSession=null;
+      authState="signed_out";
+      sessionUnlocked=false;
+      if(window.SalonPro){ window.SalonPro.authState="signed_out"; }
+      render();
     });
   }
 
@@ -2308,10 +2361,15 @@ function buildDemo(kind){
   }
 
   /* ---- admin boot: auth, pull, live-sync, watch for requests ---- */
-  function onBoot() {
+  function onBoot(existingSession) {
     if (isPublic()) return Promise.resolve();
-    return ensureAuth().then(function (session) {
-      if (!session || !sb) return;
+    authState="checking";
+    return Promise.resolve(existingSession || ensureAuth()).then(function (session) {
+      if (!session || !sb) throw new Error("Authentication required");
+      authSession=session;
+      authState="authenticated";
+      if(window.SalonPro){ window.SalonPro.authState="authenticated"; }
+      render();
       return pull().then(function () {
         if (!subscribed) {
           subscribed = true;
@@ -2324,7 +2382,13 @@ function buildDemo(kind){
           pollRequests();
         }
       });
-    }).catch(function(){});
+    }).catch(function(e){
+      authSession=null;
+      authState="signed_out";
+      if(window.SalonPro){ window.SalonPro.authState="signed_out"; }
+      render();
+      console.error("SalonPro authentication/boot failed:",e);
+    });
   }
   function pollRequests() {
     fetchRequests().then(function (rows) {
@@ -2380,7 +2444,7 @@ function buildDemo(kind){
   }
 
   window.SalonProCloud = {
-    init: init, onSave: onSave, onBoot: onBoot,
+    init: init, onSave: onSave, onBoot: onBoot, login: login, signOut: signOut, ensureAuth: ensureAuth,
     fetchBookingConfig: fetchBookingConfig, submitBooking: submitBooking,
     fetchRequests: fetchRequests, acceptRequest: acceptRequest, updateRequest: updateRequest, publishBookingConfig: publishBookingConfig,
     submitReview: submitReview, fetchReviews: fetchReviews
@@ -2390,15 +2454,18 @@ function buildDemo(kind){
 
 /* ---------- boot ---------- */
 loadDB();
-
-// Canonical salon: every browser/device uses this same Supabase salon.
-DB.settings.cloud = DB.settings.cloud || {};
-DB.settings.cloud.salonId = "salon-pro-3";
+// Canonical production salon: every device/browser uses the same salon.
+DB.settings.cloud = Object.assign({}, DB.settings.cloud || {}, { enabled:true, salonId:"salon-pro-3" });
 localStorage.setItem(STORE_KEY, JSON.stringify(DB));
-
 const h=location.hash.slice(1); if(ROUTES.includes(h)) current=h;
-render();
-if(DB.settings.cloud && DB.settings.cloud.enabled && window.SalonProCloud && SalonProCloud.onBoot){ try{ SalonProCloud.onBoot(); }catch(e){} }
+if(location.hash.slice(1)==="book" || location.hash.slice(1)==="review" || location.hash.slice(1)==="manage"){
+  authState="signed_out";
+  render();
+}else{
+  authState="checking";
+  render();
+  if(window.SalonProCloud && SalonProCloud.onBoot){ SalonProCloud.onBoot(); }
+}
 </script>
 </body>
 </html>
